@@ -10,9 +10,9 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: [
         'favicon.svg',
-        'pwa-192x192.png',
-        'pwa-512x512.png',
-        'apple-touch-icon.png',
+        'pwa-192x192.svg',
+        'pwa-512x512.svg',
+        'apple-touch-icon.svg',
       ],
       manifest: {
         name: 'Stock Valley',
@@ -25,25 +25,25 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'pwa-192x192.svg',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/svg+xml',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-512x512.svg',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/svg+xml',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-512x512.svg',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'maskable',
           },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,ico}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*$/i,
