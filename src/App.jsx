@@ -838,72 +838,66 @@ function StockMapBoard({
     });
   };
 
-  const buyRows = buys.map((buy, buyIndex) => {
+  const sellsByDate = [...sells].sort(
+    (a, b) => toDateTime(a.date) - toDateTime(b.date)
+  );
+
+  const sellRemainingQty = sellsByDate.reduce((map, sell) => {
+    map[String(sell.id)] = Number(sell.quantity) || 0;
+    return map;
+  }, {});
+
+  const buyRows = buys.map((buy) => {
     const buyKey = String(buy.id);
     const buyDate = toDateTime(buy.date);
-
-    // For this buy lot, show all sells that either:
-    // 1. Are completely unassigned, or
-    // 2. Are assigned to this buy
-    const assignedSells = sells
-      .filter((sell) => {
-        const sellKey = String(sell.id);
-        const sellDate = toDateTime(sell.date);
-
-        // Sell must not be older than this buy
-        if (sellDate < buyDate) return false;
-
-        const buyIdArray = Array.isArray(sellAssignments[sellKey])
-          ? sellAssignments[sellKey]
-          : [];
-
-        // Include if: completely unassigned OR assigned to this buy
-        return buyIdArray.length === 0 || buyIdArray.includes(buyKey);
-      })
-      .sort((a, b) => toDateTime(a.date) - toDateTime(b.date));
 
     let remainingBuyQty = Number(buy.quantity) || 0;
     let profitLoss = 0;
 
-    const settledSells = assignedSells.map((sell) => {
-      const sellKey = String(sell.id);
-      const sellQty = Number(sell.quantity) || 0;
-      const buyIdArray = Array.isArray(sellAssignments[sellKey])
-        ? sellAssignments[sellKey]
-        : [];
-      const isAssigned = buyIdArray.includes(buyKey);
+    const settledSells = sellsByDate
+      .filter((sell) => toDateTime(sell.date) >= buyDate)
+      .map((sell) => {
+        const sellKey = String(sell.id);
+        const sellQty = Number(sell.quantity) || 0;
+        const sellQtyOpen = sellRemainingQty[sellKey] || 0;
+        const buyIdArray = Array.isArray(sellAssignments[sellKey])
+          ? sellAssignments[sellKey]
+          : [];
+        const isAssigned = buyIdArray.includes(buyKey);
 
-      // Since this sell only appears when assigned to this buy or unassigned,
-      // the available quantity is simply the full sell quantity
-      const availableQty = sellQty;
-      const matchedQty = isAssigned
-        ? Math.min(remainingBuyQty, availableQty)
-        : 0;
+        const matchedQty = isAssigned
+          ? Math.min(remainingBuyQty, sellQtyOpen)
+          : 0;
+        const remainingQty = sellQtyOpen - matchedQty;
 
-      const buyQty = Number(buy.quantity) || 0;
-      const buyPrice = Number(buy.price) || 0;
-      const buyCharges = Number(buy.charges) || 0;
-      const sellPrice = Number(sell.price) || 0;
-      const sellCharges = Number(sell.charges) || 0;
-      const buyChargeShare =
-        buyQty > 0 ? (buyCharges * matchedQty) / buyQty : 0;
-      const sellChargeShare =
-        sellQty > 0 ? (sellCharges * matchedQty) / sellQty : 0;
-      const buyCost = buyPrice * matchedQty + buyChargeShare;
-      const sellValue = sellPrice * matchedQty - sellChargeShare;
+        if (matchedQty > 0) {
+          remainingBuyQty -= matchedQty;
+          sellRemainingQty[sellKey] = remainingQty;
 
-      if (matchedQty > 0) {
-        remainingBuyQty -= matchedQty;
-        profitLoss += sellValue - buyCost;
-      }
+          const buyQty = Number(buy.quantity) || 0;
+          const buyPrice = Number(buy.price) || 0;
+          const buyCharges = Number(buy.charges) || 0;
+          const sellPrice = Number(sell.price) || 0;
+          const sellCharges = Number(sell.charges) || 0;
+          const buyChargeShare =
+            buyQty > 0 ? (buyCharges * matchedQty) / buyQty : 0;
+          const sellChargeShare =
+            sellQty > 0 ? (sellCharges * matchedQty) / sellQty : 0;
+          const buyCost = buyPrice * matchedQty + buyChargeShare;
+          const sellValue = sellPrice * matchedQty - sellChargeShare;
 
-      return {
-        sell,
-        matchedQty,
-        availableQty,
-        remainingQty: availableQty - matchedQty,
-      };
-    });
+          profitLoss += sellValue - buyCost;
+        }
+
+        return {
+          sell,
+          matchedQty,
+          availableQty: sellQty,
+          remainingQty,
+          isAssigned,
+        };
+      })
+      .filter((item) => item.remainingQty > 0 || item.matchedQty > 0);
 
     return {
       buy,
