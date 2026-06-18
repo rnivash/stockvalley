@@ -215,7 +215,7 @@ textarea {
 
 .yaml-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.55rem;
 }
 
@@ -341,88 +341,6 @@ textarea {
   font-size: 0.9rem;
 }
 
-.movement-chart {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.4rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  background: linear-gradient(to top, #f1f5f9, #ffffff);
-}
-
-.movement-chart-layout {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 0.45rem;
-  align-items: start;
-}
-
-.movement-svg {
-  width: 100%;
-  height: 220px;
-}
-
-.movement-gridline {
-  stroke: #d1d5db;
-  stroke-width: 1;
-}
-
-.movement-baseline {
-  stroke: #94a3b8;
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-
-.movement-line {
-  fill: none;
-  stroke: #0f766e;
-  stroke-width: 2;
-}
-
-.movement-point {
-  stroke: #ffffff;
-  stroke-width: 1;
-}
-
-.movement-point.up {
-  fill: #16a34a;
-}
-
-.movement-point.down {
-  fill: #dc2626;
-}
-
-.movement-labels {
-  display: none;
-}
-
-.movement-x-axis {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.movement-x-axis small {
-  text-align: center;
-  font-size: 0.62rem;
-  color: #64748b;
-}
-
-.movement-y-axis {
-  position: relative;
-  height: 220px;
-}
-
-.movement-y-tick {
-  position: absolute;
-  left: 0;
-  transform: translateY(-50%);
-  font-size: 0.58rem;
-  color: #64748b;
-  line-height: 1;
-  background: #ffffffcc;
-  padding: 0 0.12rem;
-}
-
 .allocation-wrap {
   display: grid;
   gap: 0.9rem;
@@ -466,6 +384,13 @@ textarea {
   height: 12px;
   border-radius: 999px;
   flex-shrink: 0;
+}
+
+.allocation-details {
+  margin-top: 0.25rem;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .table-wrap {
@@ -748,6 +673,12 @@ textarea {
   margin: 0;
   line-height: 1.1;
   white-space: nowrap;
+}
+
+.stock-map-drop-item.partial {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  opacity: 0.85;
 }
 
 .stock-map-drop-empty {

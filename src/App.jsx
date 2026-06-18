@@ -154,24 +154,39 @@ const sanitizeSellAssignments = (assignments, buys, sells) => {
     sells.map((sell) => [String(sell.id), sell])
   );
 
-  return Object.entries(assignments || {}).reduce((next, [sellId, buyId]) => {
+  return Object.entries(assignments || {}).reduce((next, [sellId, buyIds]) => {
     const sell = sellById[String(sellId)];
-    const buy = buyById[String(buyId)];
-    if (!sell || !buy) return next;
+    if (!sell) return next;
 
-    if (toDateTime(sell.date) < toDateTime(buy.date)) return next;
+    // Handle both old format (single buyId) and new format (array of buyIds)
+    const buyIdArray = Array.isArray(buyIds) ? buyIds : [buyIds];
+    const validBuyIds = buyIdArray.filter((buyId) => {
+      const buy = buyById[String(buyId)];
+      if (!buy) return false;
+      if (toDateTime(sell.date) < toDateTime(buy.date)) return false;
+      return true;
+    });
 
-    next[String(sellId)] = String(buyId);
+    if (validBuyIds.length > 0) {
+      next[String(sellId)] = validBuyIds.map(String);
+    }
     return next;
   }, {});
 };
 
 const isSameAssignmentMap = (left, right) => {
-  const leftKeys = Object.keys(left || {});
-  const rightKeys = Object.keys(right || {});
+  const leftKeys = Object.keys(left || {}).sort();
+  const rightKeys = Object.keys(right || {}).sort();
   if (leftKeys.length !== rightKeys.length) return false;
 
-  return leftKeys.every((key) => left[key] === right[key]);
+  return leftKeys.every((key) => {
+    const leftVal = Array.isArray(left[key]) ? left[key].sort() : [left[key]];
+    const rightVal = Array.isArray(right[key])
+      ? right[key].sort()
+      : [right[key]];
+    if (leftVal.length !== rightVal.length) return false;
+    return leftVal.every((v, i) => v === rightVal[i]);
+  });
 };
 
 const sortTrades = (items) =>
@@ -262,13 +277,6 @@ function AppNav() {
           <small className="nav-hint">Add delivery charges</small>
         </NavLink>
         <NavLink
-          to="/open-stocks"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Open Stocks</span>
-          <small className="nav-hint">Bought not fully sold</small>
-        </NavLink>
-        <NavLink
           to="/symbol-pnl"
           className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
         >
@@ -284,127 +292,6 @@ function AppNav() {
         </NavLink>
       </nav>
     </section>
-  );
-}
-
-function MovementChart({ totals, currency: currencyFormatter }) {
-  const width = 320;
-  const height = 220;
-  const padX = 10;
-  const padY = 10;
-  const usableWidth = width - padX * 2;
-  const usableHeight = height - padY * 2;
-  const step =
-    totals.movementSeries.length > 1
-      ? usableWidth / (totals.movementSeries.length - 1)
-      : usableWidth;
-
-  const points = totals.movementSeries
-    .map((item, index) => {
-      const x = padX + index * step;
-      const y =
-        padY +
-        ((totals.movementMaxTotal - item.totalAmount) / totals.movementRange) *
-          usableHeight;
-      return `${x},${y}`;
-    })
-    .join(' ');
-
-  const yTicks = Array.from({ length: 5 }, (_, idx) => {
-    const value =
-      totals.movementMaxTotal -
-      (idx * (totals.movementMaxTotal - totals.movementMin)) / 4;
-    const y = padY + (idx * usableHeight) / 4;
-    return {
-      key: `y-${idx}`,
-      label: currencyFormatter(value),
-      y,
-    };
-  });
-
-  const xLabelStep = Math.max(1, Math.ceil(totals.movementSeries.length / 8));
-
-  return (
-    <div className="movement-chart-layout">
-      <div className="movement-y-axis">
-        {yTicks.map((tick) => (
-          <small
-            key={tick.key}
-            className="movement-y-tick"
-            style={{ top: `${(tick.y / height) * 100}%` }}
-          >
-            {tick.label}
-          </small>
-        ))}
-      </div>
-      <div>
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="movement-svg"
-          preserveAspectRatio="none"
-        >
-          {yTicks.map((tick) => (
-            <line
-              key={`grid-${tick.key}`}
-              x1={8}
-              y1={tick.y}
-              x2={width - 8}
-              y2={tick.y}
-              className="movement-gridline"
-            />
-          ))}
-          <line
-            x1={padX}
-            y1={height - padY}
-            x2={width - padX}
-            y2={height - padY}
-            className="movement-baseline"
-          />
-          <polyline points={points} className="movement-line" />
-          {totals.movementSeries.map((item, index) => {
-            const x = padX + index * step;
-            const y =
-              padY +
-              ((totals.movementMaxTotal - item.totalAmount) /
-                totals.movementRange) *
-                usableHeight;
-            return (
-              <circle
-                key={item.key}
-                cx={x}
-                cy={y}
-                r={
-                  index % xLabelStep === 0 ||
-                  index === totals.movementSeries.length - 1
-                    ? 2.2
-                    : 1.4
-                }
-                className="movement-point up"
-              >
-                <title>{`${item.label}: ${currencyFormatter(
-                  item.totalAmount
-                )}`}</title>
-              </circle>
-            );
-          })}
-        </svg>
-        <div
-          className="movement-x-axis"
-          style={{
-            gridTemplateColumns: `repeat(${totals.movementSeries.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {totals.movementSeries.map((item, index) => (
-            <small key={item.key}>
-              {index % xLabelStep === 0 ||
-              index === totals.movementSeries.length - 1
-                ? item.label
-                : ''}
-            </small>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -438,26 +325,6 @@ function DashboardPage({ totals, currency: currencyFormatter }) {
       </section>
 
       <section className="panel">
-        <h2>Money Movement (Apr 1 to Date)</h2>
-        <p className="chart-summary">
-          Range {totals.movementFromLabel} to{' '}
-          {new Date().toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-          })}{' '}
-          | Inflow {currencyFormatter(totals.monthInflow)} | Outflow{' '}
-          {currencyFormatter(totals.monthOutflow)}
-        </p>
-        <div
-          className="movement-chart"
-          role="img"
-          aria-label="Money movement line chart from Apr 1 to today"
-        >
-          <MovementChart totals={totals} currency={currencyFormatter} />
-        </div>
-      </section>
-
-      <section className="panel">
         <h2>Stock Wise Invested Money</h2>
         {totals.allocationLegend.length ? (
           <div className="allocation-wrap">
@@ -478,6 +345,12 @@ function DashboardPage({ totals, currency: currencyFormatter }) {
                       {currencyFormatter(item.value)} ({item.percent.toFixed(1)}
                       %)
                     </p>
+                    {item.quantity !== null && item.avgPrice !== null && (
+                      <p className="allocation-details">
+                        Qty {item.quantity} | Avg Price{' '}
+                        {currencyFormatter(item.avgPrice)}
+                      </p>
+                    )}
                   </div>
                 </li>
               ))}
@@ -944,27 +817,88 @@ function StockMapBoard({
       const buyKey = String(buyId);
       const sellKey = String(sellId);
 
-      if (next[sellKey] === buyKey) {
-        delete next[sellKey];
+      const buyIdArray = Array.isArray(next[sellKey]) ? [...next[sellKey]] : [];
+      const buyIndex = buyIdArray.indexOf(buyKey);
+
+      if (buyIndex >= 0) {
+        // Remove this buyId from the array
+        buyIdArray.splice(buyIndex, 1);
+        if (buyIdArray.length === 0) {
+          delete next[sellKey];
+        } else {
+          next[sellKey] = buyIdArray;
+        }
       } else {
-        next[sellKey] = buyKey;
+        // Add this buyId to the array
+        buyIdArray.push(buyKey);
+        next[sellKey] = buyIdArray;
       }
 
       return next;
     });
   };
 
-  const buyRows = buys.map((buy) => {
+  const buyRows = buys.map((buy, buyIndex) => {
     const buyKey = String(buy.id);
     const buyDate = toDateTime(buy.date);
+
+    // Calculate how much of each sell has been consumed by previous buy lots
+    const sellUsageMap = {};
+    for (let i = 0; i < buyIndex; i++) {
+      const prevBuy = buys[i];
+      const prevBuyKey = String(prevBuy.id);
+      const prevBuyDate = toDateTime(prevBuy.date);
+
+      sells.forEach((sell) => {
+        const sellKey = String(sell.id);
+        const sellDate = toDateTime(sell.date);
+        if (sellDate < prevBuyDate) return; // Sell must not be older than buy
+
+        const sellQty = Number(sell.quantity) || 0;
+        let usedInPrevBuy = 0;
+
+        // Check if this sell is assigned to the previous buy
+        const buyIdArray = Array.isArray(sellAssignments[sellKey])
+          ? sellAssignments[sellKey]
+          : [];
+        if (buyIdArray.includes(prevBuyKey)) {
+          usedInPrevBuy = Math.min(sellQty, Number(prevBuy.quantity) || 0);
+          for (let j = 0; j < i; j++) {
+            const priorBuyKey = String(buys[j].id);
+            const priorBuyIdArray = Array.isArray(sellAssignments[sellKey])
+              ? sellAssignments[sellKey]
+              : [];
+            if (priorBuyIdArray.includes(priorBuyKey)) {
+              usedInPrevBuy -= sellUsageMap[`${j}-${sellKey}`] || 0;
+            }
+          }
+        }
+
+        sellUsageMap[`${i}-${sellKey}`] = Math.max(0, usedInPrevBuy);
+      });
+    }
+
+    // For this buy lot, show all sells that either:
+    // 1. Are not yet fully consumed, or
+    // 2. Are assigned to this buy and not yet consumed by this buy
     const assignedSells = sells
       .filter((sell) => {
         const sellKey = String(sell.id);
-        const isAssigned =
-          !sellAssignments[sellKey] || sellAssignments[sellKey] === buyKey;
         const sellDate = toDateTime(sell.date);
-        const sellNotOlderThanBuy = sellDate >= buyDate;
-        return isAssigned && sellNotOlderThanBuy;
+
+        // Sell must not be older than this buy
+        if (sellDate < buyDate) return false;
+
+        const sellQty = Number(sell.quantity) || 0;
+        const totalConsumed = Object.keys(sellUsageMap)
+          .filter((key) => key.endsWith(`-${sellKey}`))
+          .reduce((sum, key) => sum + (sellUsageMap[key] || 0), 0);
+
+        // Include if: (not fully consumed) OR (assigned to this buy)
+        const buyIdArray = Array.isArray(sellAssignments[sellKey])
+          ? sellAssignments[sellKey]
+          : [];
+        return totalConsumed < sellQty || buyIdArray.includes(buyKey);
       })
       .sort((a, b) => toDateTime(a.date) - toDateTime(b.date));
 
@@ -972,8 +906,26 @@ function StockMapBoard({
     let profitLoss = 0;
 
     const settledSells = assignedSells.map((sell) => {
+      const sellKey = String(sell.id);
       const sellQty = Number(sell.quantity) || 0;
-      const matchedQty = Math.min(remainingBuyQty, sellQty);
+      const buyIdArray = Array.isArray(sellAssignments[sellKey])
+        ? sellAssignments[sellKey]
+        : [];
+      const isAssigned = buyIdArray.includes(buyKey);
+
+      // Calculate how much of this sell is available for this buy
+      const totalConsumedByPrevious = Object.keys(sellUsageMap)
+        .filter(
+          (key) =>
+            key.endsWith(`-${sellKey}`) && !key.startsWith(`${buyIndex}-`)
+        )
+        .reduce((sum, key) => sum + (sellUsageMap[key] || 0), 0);
+
+      const availableQty = sellQty - totalConsumedByPrevious;
+      const matchedQty = isAssigned
+        ? Math.min(remainingBuyQty, availableQty)
+        : 0;
+
       const buyQty = Number(buy.quantity) || 0;
       const buyPrice = Number(buy.price) || 0;
       const buyCharges = Number(buy.charges) || 0;
@@ -994,7 +946,8 @@ function StockMapBoard({
       return {
         sell,
         matchedQty,
-        remainingQty: sellQty - matchedQty,
+        availableQty,
+        remainingQty: availableQty - matchedQty,
       };
     });
 
@@ -1007,7 +960,9 @@ function StockMapBoard({
   });
 
   const assignedBuyIds = new Set(
-    Object.values(sellAssignments).map((buyId) => String(buyId))
+    Object.values(sellAssignments)
+      .flat()
+      .map((buyId) => String(buyId))
   );
 
   const openBuys = buys.filter((buy) => !assignedBuyIds.has(String(buy.id)));
@@ -1064,8 +1019,8 @@ function StockMapBoard({
           <div>
             <h3>Sell Entries</h3>
             <p>
-              Check sell entries to assign each one to a buy lot. Each sell can
-              be assigned to only one buy at a time.
+              Check sell entries to assign each one to one or more buy lots. A
+              single sell can be split across multiple buys.
             </p>
           </div>
           <small>{sells.length} total</small>
@@ -1084,8 +1039,9 @@ function StockMapBoard({
           <div>
             <h3>Buy Lots</h3>
             <p>
-              Select sell entries in each buy lot. Each sell appears in only the
-              lot where it is selected.
+              Select sell entries in each buy lot. Sells can be split across
+              multiple buys—remaining quantity automatically appears in other
+              lots.
             </p>
           </div>
           <small>{buys.length} lots</small>
@@ -1106,14 +1062,26 @@ function StockMapBoard({
                       {assignedSells.length ? (
                         <div className="stock-map-drop-items">
                           {assignedSells.map(
-                            ({ sell, matchedQty, remainingQty }) => {
+                            ({
+                              sell,
+                              matchedQty,
+                              availableQty,
+                              remainingQty,
+                            }) => {
                               const sellKey = String(sell.id);
-                              const isSelected =
-                                sellAssignments[sellKey] === buyKey;
+                              const buyIdArray = Array.isArray(
+                                sellAssignments[sellKey]
+                              )
+                                ? sellAssignments[sellKey]
+                                : [];
+                              const isSelected = buyIdArray.includes(buyKey);
+                              const sellQty = Number(sell.quantity) || 0;
                               return (
                                 <label
                                   key={sellKey}
-                                  className="stock-map-drop-item"
+                                  className={`stock-map-drop-item${
+                                    availableQty < sellQty ? ' partial' : ''
+                                  }`}
                                 >
                                   <input
                                     type="checkbox"
@@ -1130,7 +1098,11 @@ function StockMapBoard({
                                   <div>
                                     <p>{formatDateMonth(sell.date)}</p>
                                     <small>
-                                      {formatQtyPrice(sell, currencyFormatter)}
+                                      {availableQty} x{' '}
+                                      {currencyFormatter(sell.price)}
+                                      {availableQty < sellQty
+                                        ? ` (of ${sellQty})`
+                                        : ''}
                                     </small>
                                   </div>
                                 </label>
@@ -1240,37 +1212,6 @@ function StockMapPage({ stockEntries, currency: currencyFormatter }) {
   );
 }
 
-function OpenStocksPage({ openStocks, currency: currencyFormatter }) {
-  return (
-    <section className="panel">
-      <h2>Open Stocks</h2>
-      {openStocks.length ? (
-        <ul className="list">
-          {openStocks.map((item) => {
-            const avgCost = item.quantity ? item.invested / item.quantity : 0;
-            return (
-              <li key={item.symbol} className="list-row">
-                <div>
-                  <strong>{item.symbol}</strong>
-                  <p>
-                    Open Qty {item.quantity} | Avg Cost{' '}
-                    {currencyFormatter(avgCost)}
-                  </p>
-                </div>
-                <div className="row-end">
-                  <strong>{currencyFormatter(item.invested)}</strong>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="empty">No open stocks.</p>
-      )}
-    </section>
-  );
-}
-
 function SymbolPnlPage({ symbolProfitLossRows, currency: currencyFormatter }) {
   return (
     <section className="panel">
@@ -1323,6 +1264,7 @@ function DataYamlPage({
   yamlStatus,
   exportAllDataAsYaml,
   importAllDataFromYaml,
+  importFromGitHub,
 }) {
   return (
     <section className="panel">
@@ -1336,6 +1278,9 @@ function DataYamlPage({
         </button>
         <button type="button" onClick={importAllDataFromYaml}>
           Import From YAML
+        </button>
+        <button type="button" onClick={importFromGitHub}>
+          Import from GitHub
         </button>
       </div>
       <textarea
@@ -1440,101 +1385,6 @@ export default function App() {
     );
 
     const cashDeposited = totalFundAdded - totalFundWithdrawn;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const fyStart = new Date(today.getFullYear(), 3, 1);
-    if (today < fyStart) fyStart.setFullYear(fyStart.getFullYear() - 1);
-
-    const dayCount = Math.floor((today - fyStart) / (1000 * 60 * 60 * 24)) + 1;
-    const dayList = Array.from({ length: dayCount }, (_, idx) => {
-      const date = new Date(fyStart);
-      date.setDate(fyStart.getDate() + idx);
-      return date;
-    });
-
-    const movementByDay = cashEntries.reduce((map, item) => {
-      const date = toDate(item.date);
-      if (!date) return map;
-      date.setHours(0, 0, 0, 0);
-      const key = date.toISOString().slice(0, 10);
-      const amount =
-        toNumber(item.amount) * (item.type === 'withdraw' ? -1 : 1);
-      map[key] = (map[key] || 0) + amount;
-      return map;
-    }, {});
-
-    const movementWithDpCharges = dpChargeEntries.reduce((map, item) => {
-      const date = toDate(item.date);
-      if (!date) return map;
-      date.setHours(0, 0, 0, 0);
-      const key = date.toISOString().slice(0, 10);
-      const amount = Math.abs(toNumber(item.amount));
-      map[key] = (map[key] || 0) - amount;
-      return map;
-    }, movementByDay);
-
-    const movementWithStocks = stockEntries.reduce((map, item) => {
-      const date = toDate(item.date);
-      if (!date) return map;
-      date.setHours(0, 0, 0, 0);
-      const key = date.toISOString().slice(0, 10);
-      const tradeValue = toNumber(item.quantity) * toNumber(item.price);
-      const charges = toNumber(item.charges);
-      const cashEffect =
-        toAction(item.action) === 'buy'
-          ? -(tradeValue + charges)
-          : tradeValue - charges;
-      map[key] = (map[key] || 0) + cashEffect;
-      return map;
-    }, movementWithDpCharges);
-
-    const monthlyMovement = dayList.map((date, idx) => {
-      const key = date.toISOString().slice(0, 10);
-      return {
-        key,
-        amount: movementWithStocks[key] || 0,
-        label: date.toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-        }),
-        showLabel:
-          idx % Math.max(1, Math.ceil(dayList.length / 8)) === 0 ||
-          idx === dayList.length - 1,
-      };
-    });
-
-    const movementMax = Math.max(
-      1,
-      ...monthlyMovement.map((item) => Math.abs(item.amount))
-    );
-
-    const monthInflow = monthlyMovement
-      .filter((item) => item.amount > 0)
-      .reduce((sum, item) => sum + item.amount, 0);
-
-    const monthOutflow = monthlyMovement
-      .filter((item) => item.amount < 0)
-      .reduce((sum, item) => sum + Math.abs(item.amount), 0);
-
-    let runningTotal = 0;
-    const movementSeries = monthlyMovement.map((item) => {
-      runningTotal += item.amount;
-      return {
-        ...item,
-        totalAmount: runningTotal,
-      };
-    });
-
-    const movementMin = Math.min(
-      0,
-      ...movementSeries.map((item) => item.totalAmount)
-    );
-    const movementMaxTotal = Math.max(
-      0,
-      ...movementSeries.map((item) => item.totalAmount)
-    );
-    const movementRange = Math.max(1, movementMaxTotal - movementMin);
 
     const orderedStocks = [...stockEntries]
       .map((item, index) => ({ ...item, _index: index }))
@@ -1816,11 +1666,15 @@ export default function App() {
         label: item.symbol,
         value: item.invested,
         color: palette[index % palette.length],
+        quantity: item.quantity,
+        avgPrice: item.quantity > 0 ? item.invested / item.quantity : 0,
       })),
       {
         label: 'Remaining Cash',
         value: Math.max(0, toNumber(liquidCash)),
         color: '#334155',
+        quantity: null,
+        avgPrice: null,
       },
     ].filter((item) => item.value > 0);
 
@@ -1874,24 +1728,11 @@ export default function App() {
       pnl: pnlAfterDpCharges,
       pnlBeforeDpCharges: closedTradeDiff,
       holdings,
-      monthlyMovement,
-      movementMax,
-      movementSeries,
-      movementMin,
-      movementMaxTotal,
-      movementRange,
-      monthInflow,
-      monthOutflow,
       investedByStock,
-      openStocks: investedByStock,
       symbolProfitLossRows,
       allocationLegend,
       allocationGradient,
       allocationTotal,
-      movementFromLabel: fyStart.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-      }),
     };
   }, [cashEntries, stockEntries, dpChargeEntries]);
 
@@ -2150,6 +1991,33 @@ export default function App() {
     }
   };
 
+  const importFromGitHub = async () => {
+    try {
+      setYamlStatus('Fetching data from GitHub...');
+      const response = await fetch(
+        'https://raw.githubusercontent.com/rnivash/stockvalley/refs/heads/main/public/data.yaml'
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `GitHub fetch failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const yaml = await response.text();
+      setYamlText(yaml);
+      setYamlStatus('GitHub data loaded. Click "Import From YAML" to import.');
+    } catch (error) {
+      setYamlStatus(
+        `GitHub import failed: ${
+          error instanceof Error
+            ? error.message
+            : 'Unable to fetch from GitHub.'
+        }`
+      );
+    }
+  };
+
   return (
     <div className="app-shell">
       <header className="hero">
@@ -2231,15 +2099,6 @@ export default function App() {
             />
           }
         />
-        <Route
-          path="/open-stocks"
-          element={
-            <OpenStocksPage
-              openStocks={totals.openStocks}
-              currency={currency}
-            />
-          }
-        />
 
         <Route
           path="/symbol-pnl"
@@ -2259,6 +2118,7 @@ export default function App() {
               yamlStatus={yamlStatus}
               exportAllDataAsYaml={exportAllDataAsYaml}
               importAllDataFromYaml={importAllDataFromYaml}
+              importFromGitHub={importFromGitHub}
             />
           }
         />
