@@ -1030,11 +1030,16 @@ function StockMapBoard({
                                 : [];
                               const isSelected = buyIdArray.includes(buyKey);
                               const sellQty = Number(sell.quantity) || 0;
+                              const isPartialMatch = isSelected && matchedQty < sellQty;
+                              const displayQty = isSelected ? matchedQty : availableQty;
+                              const displayLabel = isPartialMatch
+                                ? `${matchedQty}/${sellQty}`
+                                : displayQty;
                               return (
                                 <label
                                   key={sellKey}
                                   className={`stock-map-drop-item${
-                                    availableQty < sellQty ? ' partial' : ''
+                                    isPartialMatch ? ' partial' : ''
                                   }`}
                                 >
                                   <input
@@ -1052,7 +1057,7 @@ function StockMapBoard({
                                   <div>
                                     <p>{formatDateMonth(sell.date)}</p>
                                     <small>
-                                      {isSelected ? matchedQty : availableQty} x{' '}
+                                      {displayLabel} x{' '}
                                       {currencyFormatter(sell.price)}
                                     </small>
                                   </div>
