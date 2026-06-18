@@ -1098,11 +1098,13 @@ function StockMapBoard({
                                   <div>
                                     <p>{formatDateMonth(sell.date)}</p>
                                     <small>
-                                      {availableQty} x{' '}
+                                      {isSelected ? matchedQty : availableQty} x{' '}
                                       {currencyFormatter(sell.price)}
-                                      {availableQty < sellQty
-                                        ? ` (of ${sellQty})`
-                                        : ''}
+                                      {isSelected && matchedQty < availableQty
+                                        ? ` (of ${availableQty})`
+                                        : availableQty < sellQty
+                                          ? ` (of ${sellQty})`
+                                          : ''}
                                     </small>
                                   </div>
                                 </label>
