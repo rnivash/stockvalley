@@ -842,45 +842,9 @@ function StockMapBoard({
     const buyKey = String(buy.id);
     const buyDate = toDateTime(buy.date);
 
-    // Calculate how much of each sell has been consumed by previous buy lots
-    const sellUsageMap = {};
-    for (let i = 0; i < buyIndex; i++) {
-      const prevBuy = buys[i];
-      const prevBuyKey = String(prevBuy.id);
-      const prevBuyDate = toDateTime(prevBuy.date);
-
-      sells.forEach((sell) => {
-        const sellKey = String(sell.id);
-        const sellDate = toDateTime(sell.date);
-        if (sellDate < prevBuyDate) return; // Sell must not be older than buy
-
-        const sellQty = Number(sell.quantity) || 0;
-        let usedInPrevBuy = 0;
-
-        // Check if this sell is assigned to the previous buy
-        const buyIdArray = Array.isArray(sellAssignments[sellKey])
-          ? sellAssignments[sellKey]
-          : [];
-        if (buyIdArray.includes(prevBuyKey)) {
-          usedInPrevBuy = Math.min(sellQty, Number(prevBuy.quantity) || 0);
-          for (let j = 0; j < i; j++) {
-            const priorBuyKey = String(buys[j].id);
-            const priorBuyIdArray = Array.isArray(sellAssignments[sellKey])
-              ? sellAssignments[sellKey]
-              : [];
-            if (priorBuyIdArray.includes(priorBuyKey)) {
-              usedInPrevBuy -= sellUsageMap[`${j}-${sellKey}`] || 0;
-            }
-          }
-        }
-
-        sellUsageMap[`${i}-${sellKey}`] = Math.max(0, usedInPrevBuy);
-      });
-    }
-
     // For this buy lot, show all sells that either:
-    // 1. Are not yet fully consumed, or
-    // 2. Are assigned to this buy and not yet consumed by this buy
+    // 1. Are completely unassigned, or
+    // 2. Are assigned to this buy
     const assignedSells = sells
       .filter((sell) => {
         const sellKey = String(sell.id);
@@ -889,16 +853,12 @@ function StockMapBoard({
         // Sell must not be older than this buy
         if (sellDate < buyDate) return false;
 
-        const sellQty = Number(sell.quantity) || 0;
-        const totalConsumed = Object.keys(sellUsageMap)
-          .filter((key) => key.endsWith(`-${sellKey}`))
-          .reduce((sum, key) => sum + (sellUsageMap[key] || 0), 0);
-
-        // Include if: (not fully consumed) OR (assigned to this buy)
         const buyIdArray = Array.isArray(sellAssignments[sellKey])
           ? sellAssignments[sellKey]
           : [];
-        return totalConsumed < sellQty || buyIdArray.includes(buyKey);
+
+        // Include if: completely unassigned OR assigned to this buy
+        return buyIdArray.length === 0 || buyIdArray.includes(buyKey);
       })
       .sort((a, b) => toDateTime(a.date) - toDateTime(b.date));
 
@@ -913,15 +873,9 @@ function StockMapBoard({
         : [];
       const isAssigned = buyIdArray.includes(buyKey);
 
-      // Calculate how much of this sell is available for this buy
-      const totalConsumedByPrevious = Object.keys(sellUsageMap)
-        .filter(
-          (key) =>
-            key.endsWith(`-${sellKey}`) && !key.startsWith(`${buyIndex}-`)
-        )
-        .reduce((sum, key) => sum + (sellUsageMap[key] || 0), 0);
-
-      const availableQty = sellQty - totalConsumedByPrevious;
+      // Since this sell only appears when assigned to this buy or unassigned,
+      // the available quantity is simply the full sell quantity
+      const availableQty = sellQty;
       const matchedQty = isAssigned
         ? Math.min(remainingBuyQty, availableQty)
         : 0;
@@ -1100,11 +1054,6 @@ function StockMapBoard({
                                     <small>
                                       {isSelected ? matchedQty : availableQty} x{' '}
                                       {currencyFormatter(sell.price)}
-                                      {isSelected && matchedQty < availableQty
-                                        ? ` (of ${availableQty})`
-                                        : availableQty < sellQty
-                                          ? ` (of ${sellQty})`
-                                          : ''}
                                     </small>
                                   </div>
                                 </label>
