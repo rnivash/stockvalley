@@ -1,16 +1,83 @@
-# React + Vite
+# StockValley
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+StockValley is a React + Vite single-page app for tracking investment cash flows, stock trades, P/L, and lot mapping.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Tracks deposits and withdrawals under Money Movement.
+- Records buy/sell stock trades with quantity, price, charges, and date.
+- Shows a Dashboard with invested amount, total worth, projected balance, and overall P/L.
+- Displays symbol-level P/L summaries and stock allocation.
+- Provides a Stock Map page for assigning sell lots to buy lots with matched P/L.
+- Lets you record DP charges separately.
+- Supports exporting and importing the complete app state as YAML.
+- Includes a GitHub import button that loads `public/data.yaml` from the repository.
 
-## React Compiler
+## Tech stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 18
+- Vite
+- React Router DOM
+- js-yaml
+- Plain CSS
+- ESLint
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Prerequisites: Node.js 18+ and npm (or pnpm/yarn).
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start development server:
+
+```bash
+npm run dev
+```
+
+Open the app at `http://localhost:5173`.
+
+Build for production:
+
+```bash
+npm run build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## App pages
+
+- `/` — Dashboard
+- `/money` — Money Movement
+- `/stocks` — Stock Entries
+- `/stock-map` — Stock Map lot assignment
+- `/dp-charges` — DP Charges
+- `/symbol-pnl` — Symbol P/L
+- `/data-yaml` — YAML import/export
+
+## Data and persistence
+
+- Data is persisted in browser `localStorage`.
+- Use the Data YAML page to export current state, paste YAML to import, or fetch sample YAML from GitHub.
+- The repository includes `public/data.yaml` as demo data.
+
+## Project structure
+
+- `index.html` — app shell
+- `src/main.jsx` — React entry point
+- `src/App.jsx` — main app and page components
+- `src/styles.css` — UI styling
+- `public/data.yaml` — demo YAML dataset
+- `eslint.config.js` — linting configuration
+
+## Notes
+
+- The app is designed as a lightweight demo and stores data locally in the browser.
+- Add API integration or environment variables using `VITE_` prefixes if you extend the app.
