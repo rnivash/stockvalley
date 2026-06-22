@@ -6,6 +6,7 @@ const CASH_KEY = 'stockvalley-cash-entries';
 const STOCK_KEY = 'stockvalley-stock-entries';
 const SYMBOL_KEY = 'stockvalley-symbol-suggestions';
 const DP_CHARGES_KEY = 'stockvalley-dp-charge-entries';
+const MANUAL_MAPPINGS_KEY = 'stockvalley-manual-mappings';
 
 const readStorage = (key) => {
   try {
@@ -108,7 +109,26 @@ const getDateKey = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
-const STOCK_MAP_ASSIGNMENTS_KEY = 'stockvalley-stock-map-assignments';
+const getMonthKey = (value) => {
+  const date = toDate(value);
+  if (!date) return null;
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString().slice(0, 7);
+};
+
+const formatMonthLabel = (value) => {
+  const [year, month] = String(value || '').split('-');
+  const y = Number(year);
+  const m = Number(month);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
+    return 'Unknown month';
+  }
+
+  return new Date(y, m - 1, 1).toLocaleDateString('en-IN', {
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
 const toDateTime = (value) => {
   const date = new Date(value);
@@ -133,61 +153,6 @@ const formatDateMonth = (value) => {
 
 const formatQtyPrice = (item, currencyFormatter) =>
   `${item.quantity} x ${currencyFormatter(item.price)}`;
-
-const readStockMapAssignments = () => {
-  try {
-    const raw = localStorage.getItem(STOCK_MAP_ASSIGNMENTS_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const saveStockMapAssignments = (value) => {
-  localStorage.setItem(STOCK_MAP_ASSIGNMENTS_KEY, JSON.stringify(value));
-};
-
-const sanitizeSellAssignments = (assignments, buys, sells) => {
-  const buyById = Object.fromEntries(buys.map((buy) => [String(buy.id), buy]));
-  const sellById = Object.fromEntries(
-    sells.map((sell) => [String(sell.id), sell])
-  );
-
-  return Object.entries(assignments || {}).reduce((next, [sellId, buyIds]) => {
-    const sell = sellById[String(sellId)];
-    if (!sell) return next;
-
-    // Handle both old format (single buyId) and new format (array of buyIds)
-    const buyIdArray = Array.isArray(buyIds) ? buyIds : [buyIds];
-    const validBuyIds = buyIdArray.filter((buyId) => {
-      const buy = buyById[String(buyId)];
-      if (!buy) return false;
-      if (toDateTime(sell.date) < toDateTime(buy.date)) return false;
-      return true;
-    });
-
-    if (validBuyIds.length > 0) {
-      next[String(sellId)] = validBuyIds.map(String);
-    }
-    return next;
-  }, {});
-};
-
-const isSameAssignmentMap = (left, right) => {
-  const leftKeys = Object.keys(left || {}).sort();
-  const rightKeys = Object.keys(right || {}).sort();
-  if (leftKeys.length !== rightKeys.length) return false;
-
-  return leftKeys.every((key) => {
-    const leftVal = Array.isArray(left[key]) ? left[key].sort() : [left[key]];
-    const rightVal = Array.isArray(right[key])
-      ? right[key].sort()
-      : [right[key]];
-    if (leftVal.length !== rightVal.length) return false;
-    return leftVal.every((v, i) => v === rightVal[i]);
-  });
-};
 
 const sortTrades = (items) =>
   [...items].sort((a, b) => {
@@ -263,13 +228,6 @@ function AppNav() {
           <small className="nav-hint">Add and view trades</small>
         </NavLink>
         <NavLink
-          to="/stock-map"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Stock Map</span>
-          <small className="nav-hint">Drag sells into buy lots</small>
-        </NavLink>
-        <NavLink
           to="/dp-charges"
           className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
         >
@@ -282,6 +240,20 @@ function AppNav() {
         >
           <span className="nav-label">Symbol P/L</span>
           <small className="nav-hint">Closed qty averages</small>
+        </NavLink>
+        <NavLink
+          to="/monthly-pnl"
+          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+        >
+          <span className="nav-label">Monthly P/L</span>
+          <small className="nav-hint">Profit and gain % trend</small>
+        </NavLink>
+        <NavLink
+          to="/buy-sell-mapping"
+          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+        >
+          <span className="nav-label">Buy-Sell Mapping</span>
+          <small className="nav-hint">Match buys and sells</small>
         </NavLink>
         <NavLink
           to="/data-yaml"
@@ -757,411 +729,6 @@ function StocksPage({
   );
 }
 
-function StockMapBoard({
-  selectedSymbol,
-  stockEntries,
-  currency: currencyFormatter,
-}) {
-  const symbolEntries = useMemo(
-    () =>
-      sortTrades(stockEntries.filter((item) => item.symbol === selectedSymbol)),
-    [stockEntries, selectedSymbol]
-  );
-
-  const buys = useMemo(
-    () => symbolEntries.filter((item) => item.action === 'buy'),
-    [symbolEntries]
-  );
-  const sells = useMemo(
-    () => symbolEntries.filter((item) => item.action === 'sell'),
-    [symbolEntries]
-  );
-
-  const [sellAssignments, setSellAssignments] = useState({});
-  const [isAssignmentsHydrated, setIsAssignmentsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsAssignmentsHydrated(false);
-    const allAssignments = readStockMapAssignments();
-    const symbolAssignments =
-      allAssignments[selectedSymbol] &&
-      typeof allAssignments[selectedSymbol] === 'object'
-        ? allAssignments[selectedSymbol]
-        : {};
-
-    setSellAssignments(sanitizeSellAssignments(symbolAssignments, buys, sells));
-    setIsAssignmentsHydrated(true);
-  }, [selectedSymbol, buys, sells]);
-
-  useEffect(() => {
-    if (!selectedSymbol || !isAssignmentsHydrated) return;
-
-    const sanitized = sanitizeSellAssignments(sellAssignments, buys, sells);
-    if (!isSameAssignmentMap(sanitized, sellAssignments)) {
-      setSellAssignments(sanitized);
-      return;
-    }
-
-    const allAssignments = readStockMapAssignments();
-    if (Object.keys(sanitized).length) {
-      allAssignments[selectedSymbol] = sanitized;
-    } else {
-      delete allAssignments[selectedSymbol];
-    }
-    saveStockMapAssignments(allAssignments);
-  }, [selectedSymbol, sellAssignments, buys, sells, isAssignmentsHydrated]);
-
-  const toggleSellSelection = (buyId, sellId) => {
-    setSellAssignments((current) => {
-      const next = { ...current };
-      const buyKey = String(buyId);
-      const sellKey = String(sellId);
-
-      const buyIdArray = Array.isArray(next[sellKey]) ? [...next[sellKey]] : [];
-      const buyIndex = buyIdArray.indexOf(buyKey);
-
-      if (buyIndex >= 0) {
-        // Remove this buyId from the array
-        buyIdArray.splice(buyIndex, 1);
-        if (buyIdArray.length === 0) {
-          delete next[sellKey];
-        } else {
-          next[sellKey] = buyIdArray;
-        }
-      } else {
-        // Add this buyId to the array
-        buyIdArray.push(buyKey);
-        next[sellKey] = buyIdArray;
-      }
-
-      return next;
-    });
-  };
-
-  const sellsByDate = [...sells].sort(
-    (a, b) => toDateTime(a.date) - toDateTime(b.date)
-  );
-
-  const sellRemainingQty = sellsByDate.reduce((map, sell) => {
-    map[String(sell.id)] = Number(sell.quantity) || 0;
-    return map;
-  }, {});
-
-  const buyRows = buys.map((buy) => {
-    const buyKey = String(buy.id);
-    const buyDate = toDateTime(buy.date);
-
-    let remainingBuyQty = Number(buy.quantity) || 0;
-    let profitLoss = 0;
-
-    const settledSells = sellsByDate
-      .filter((sell) => toDateTime(sell.date) >= buyDate)
-      .map((sell) => {
-        const sellKey = String(sell.id);
-        const sellQty = Number(sell.quantity) || 0;
-        const sellQtyOpen = sellRemainingQty[sellKey] || 0;
-        const buyIdArray = Array.isArray(sellAssignments[sellKey])
-          ? sellAssignments[sellKey]
-          : [];
-        const isAssigned = buyIdArray.includes(buyKey);
-
-        const matchedQty = isAssigned
-          ? Math.min(remainingBuyQty, sellQtyOpen)
-          : 0;
-        const remainingQty = sellQtyOpen - matchedQty;
-
-        if (matchedQty > 0) {
-          remainingBuyQty -= matchedQty;
-          sellRemainingQty[sellKey] = remainingQty;
-
-          const buyQty = Number(buy.quantity) || 0;
-          const buyPrice = Number(buy.price) || 0;
-          const buyCharges = Number(buy.charges) || 0;
-          const sellPrice = Number(sell.price) || 0;
-          const sellCharges = Number(sell.charges) || 0;
-          const buyChargeShare =
-            buyQty > 0 ? (buyCharges * matchedQty) / buyQty : 0;
-          const sellChargeShare =
-            sellQty > 0 ? (sellCharges * matchedQty) / sellQty : 0;
-          const buyCost = buyPrice * matchedQty + buyChargeShare;
-          const sellValue = sellPrice * matchedQty - sellChargeShare;
-
-          profitLoss += sellValue - buyCost;
-        }
-
-        return {
-          sell,
-          matchedQty,
-          availableQty: sellQty,
-          remainingQty,
-          isAssigned,
-        };
-      })
-      .filter((item) => item.remainingQty > 0 || item.matchedQty > 0);
-
-    return {
-      buy,
-      assignedSells: settledSells,
-      profitLoss,
-      remainingBuyQty,
-    };
-  });
-
-  const assignedBuyIds = new Set(
-    Object.values(sellAssignments)
-      .flat()
-      .map((buyId) => String(buyId))
-  );
-
-  const openBuys = buys.filter((buy) => !assignedBuyIds.has(String(buy.id)));
-  const openBuysStats = useMemo(() => {
-    if (!openBuys.length) {
-      return { totalQty: 0, totalValue: 0, avgPrice: 0 };
-    }
-
-    const totalQty = openBuys.reduce(
-      (sum, buy) => sum + (Number(buy.quantity) || 0),
-      0
-    );
-    const totalValue = openBuys.reduce((sum, buy) => {
-      const qty = Number(buy.quantity) || 0;
-      const price = Number(buy.price) || 0;
-      return sum + qty * price;
-    }, 0);
-    const avgPrice = totalQty > 0 ? totalValue / totalQty : 0;
-
-    return { totalQty, totalValue, avgPrice };
-  }, [openBuys]);
-
-  const totalPL = useMemo(() => {
-    return buyRows.reduce((sum, row) => sum + row.profitLoss, 0);
-  }, [buyRows]);
-
-  return (
-    <section className="stock-map-board">
-      {(openBuys.length > 0 || totalPL !== 0) && (
-        <section className="stock-map-summary">
-          {openBuys.length > 0 && (
-            <div className="stock-map-open-stats">
-              <strong>Open Stock (No Sell Mapped):</strong>
-              <span>
-                Qty {openBuysStats.totalQty} | Avg Buy Price{' '}
-                {currencyFormatter(openBuysStats.avgPrice)}
-              </span>
-            </div>
-          )}
-          {buyRows.some((row) => row.profitLoss !== 0) && (
-            <div
-              className={`stock-map-pl-summary${
-                totalPL >= 0 ? ' positive' : ' negative'
-              }`}
-            >
-              <strong>Mapped P/L:</strong>
-              <span>{currencyFormatter(totalPL)}</span>
-            </div>
-          )}
-        </section>
-      )}
-      <section className="stock-map-panel">
-        <div className="stock-map-section-head">
-          <div>
-            <h3>Sell Entries</h3>
-            <p>
-              Check sell entries to assign each one to one or more buy lots. A
-              single sell can be split across multiple buys.
-            </p>
-          </div>
-          <small>{sells.length} total</small>
-        </div>
-        {sells.length ? (
-          <p className="empty">
-            The sell list is shown inside each buy box below.
-          </p>
-        ) : (
-          <p className="empty">No sell entries for this stock.</p>
-        )}
-      </section>
-
-      <section className="stock-map-panel">
-        <div className="stock-map-section-head">
-          <div>
-            <h3>Buy Lots</h3>
-            <p>
-              Select sell entries in each buy lot. Sells can be split across
-              multiple buys—remaining quantity automatically appears in other
-              lots.
-            </p>
-          </div>
-          <small>{buys.length} lots</small>
-        </div>
-
-        {buys.length ? (
-          <div className="stock-map-buy-list">
-            {buyRows.map(
-              ({ buy, assignedSells, profitLoss, remainingBuyQty }) => {
-                const buyKey = String(buy.id);
-                return (
-                  <article key={buyKey} className="stock-map-buy-row">
-                    <div className="stock-map-buy-entry">
-                      <p>{formatDateMonth(buy.date)}</p>
-                      <small>{formatQtyPrice(buy, currencyFormatter)}</small>
-                    </div>
-                    <div className="stock-map-dropzone filled">
-                      {assignedSells.length ? (
-                        <div className="stock-map-drop-items">
-                          {assignedSells.map(
-                            ({
-                              sell,
-                              matchedQty,
-                              availableQty,
-                              remainingQty,
-                            }) => {
-                              const sellKey = String(sell.id);
-                              const buyIdArray = Array.isArray(
-                                sellAssignments[sellKey]
-                              )
-                                ? sellAssignments[sellKey]
-                                : [];
-                              const isSelected = buyIdArray.includes(buyKey);
-                              const sellQty = Number(sell.quantity) || 0;
-                              const isPartialMatch = isSelected && matchedQty < sellQty;
-                              const displayQty = isSelected ? matchedQty : availableQty;
-                              const displayLabel = isPartialMatch
-                                ? `${matchedQty}/${sellQty}`
-                                : displayQty;
-                              return (
-                                <label
-                                  key={sellKey}
-                                  className={`stock-map-drop-item${
-                                    isPartialMatch ? ' partial' : ''
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    className="stock-map-select-checkbox"
-                                    checked={isSelected}
-                                    onChange={() =>
-                                      toggleSellSelection(buyKey, sell.id)
-                                    }
-                                    aria-label={`Select ${formatTradeStamp(
-                                      sell,
-                                      currencyFormatter
-                                    )} for this buy box`}
-                                  />
-                                  <div>
-                                    <p>{formatDateMonth(sell.date)}</p>
-                                    <small>
-                                      {displayLabel} x{' '}
-                                      {currencyFormatter(sell.price)}
-                                    </small>
-                                  </div>
-                                </label>
-                              );
-                            }
-                          )}
-                        </div>
-                      ) : (
-                        <p className="stock-map-drop-empty">
-                          No sell entries loaded
-                        </p>
-                      )}
-                    </div>
-                    <div
-                      className={`stock-map-pl${
-                        profitLoss >= 0 ? ' positive' : ' negative'
-                      }`}
-                    >
-                      <small>P/L</small>
-                      <strong>{currencyFormatter(profitLoss)}</strong>
-                      <span>
-                        {remainingBuyQty > 0
-                          ? `${remainingBuyQty} qty open`
-                          : 'Fully matched'}
-                      </span>
-                    </div>
-                  </article>
-                );
-              }
-            )}
-          </div>
-        ) : (
-          <p className="empty">No buy entries for this stock.</p>
-        )}
-      </section>
-    </section>
-  );
-}
-
-function StockMapPage({ stockEntries, currency: currencyFormatter }) {
-  const symbols = useMemo(
-    () =>
-      [
-        ...new Set(
-          stockEntries
-            .map((item) =>
-              String(item.symbol || '')
-                .trim()
-                .toUpperCase()
-            )
-            .filter(Boolean)
-        ),
-      ].sort(),
-    [stockEntries]
-  );
-
-  const [selectedSymbol, setSelectedSymbol] = useState('');
-
-  useEffect(() => {
-    if (!symbols.length) {
-      if (selectedSymbol) setSelectedSymbol('');
-      return;
-    }
-
-    if (!symbols.includes(selectedSymbol)) {
-      setSelectedSymbol(symbols[0]);
-    }
-  }, [selectedSymbol, symbols]);
-
-  return (
-    <section className="panel stock-map-page">
-      <div className="stock-map-header">
-        <div>
-          <h2>Stock Map</h2>
-          <p>
-            Select a stock, then check the sell entries you want to match with
-            each buy lot. Each sell appears in only the lot where it is
-            selected.
-          </p>
-        </div>
-        <label className="stock-map-select-wrap">
-          <span>Stock</span>
-          <select
-            value={selectedSymbol}
-            onChange={(event) => setSelectedSymbol(event.target.value)}
-          >
-            {symbols.map((symbol) => (
-              <option key={symbol} value={symbol}>
-                {symbol}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {selectedSymbol ? (
-        <StockMapBoard
-          key={selectedSymbol}
-          selectedSymbol={selectedSymbol}
-          stockEntries={stockEntries}
-          currency={currencyFormatter}
-        />
-      ) : (
-        <p className="empty">Add stock entries first to build a stock map.</p>
-      )}
-    </section>
-  );
-}
-
 function SymbolPnlPage({ symbolProfitLossRows, currency: currencyFormatter }) {
   return (
     <section className="panel">
@@ -1202,6 +769,458 @@ function SymbolPnlPage({ symbolProfitLossRows, currency: currencyFormatter }) {
       ) : (
         <p className="empty">
           No closed trades yet to calculate symbol-wise profit/loss.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function MonthlyPnlPage({
+  monthlyPerformanceRows,
+  currency: currencyFormatter,
+}) {
+  const maxAbsGainPercent = useMemo(
+    () =>
+      monthlyPerformanceRows.reduce(
+        (max, item) =>
+          Math.max(
+            max,
+            Math.abs(item.gainPercent === null ? 0 : item.gainPercent)
+          ),
+        0
+      ),
+    [monthlyPerformanceRows]
+  );
+
+  const formatPercent = (value) => {
+    if (value === null) return 'N/A';
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(2)}%`;
+  };
+
+  return (
+    <section className="panel monthly-pnl-page">
+      <h2>Month Wise Overall Profit / Loss</h2>
+      <p className="chart-summary">
+        Net P/L includes realized trade P/L and DP charges. Gain % is calculated
+        as net P/L divided by cumulative net funds (carry-forward of monthly
+        fund added minus withdrawn).
+      </p>
+
+      {monthlyPerformanceRows.length ? (
+        <section className="monthly-chart-wrap">
+          <h3>Monthly Gain Percentage</h3>
+          <div className="monthly-chart-list">
+            {monthlyPerformanceRows.map((item) => {
+              const gainValue =
+                item.gainPercent === null ? 0 : item.gainPercent;
+              const gainWidth =
+                maxAbsGainPercent > 0
+                  ? `${(Math.abs(gainValue) / maxAbsGainPercent) * 100}%`
+                  : '0%';
+
+              return (
+                <article
+                  key={`${item.monthKey}-gain`}
+                  className="monthly-chart-row"
+                >
+                  <div className="monthly-row-head">
+                    <strong>{formatMonthLabel(item.monthKey)}</strong>
+                    <strong
+                      className={gainValue >= 0 ? 'cell-good' : 'cell-bad'}
+                    >
+                      {formatPercent(item.gainPercent)} |{' '}
+                      {currencyFormatter(item.netPnl)}
+                    </strong>
+                  </div>
+                  <div className="monthly-bar-track">
+                    <div className="monthly-bar-side left">
+                      {gainValue < 0 ? (
+                        <span
+                          className="monthly-bar negative"
+                          style={{ width: gainWidth }}
+                        />
+                      ) : null}
+                    </div>
+                    <div className="monthly-bar-side right">
+                      {gainValue >= 0 ? (
+                        <span
+                          className="monthly-bar positive"
+                          style={{ width: gainWidth }}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                  <p className="monthly-row-meta">
+                    {(() => {
+                      const fdInterest = (item.netFunds * 0.06) / 12;
+                      const diffPercent =
+                        fdInterest !== 0
+                          ? ((item.netPnl - fdInterest) / fdInterest) * 100
+                          : 0;
+                      return `Net Funds ${currencyFormatter(
+                        item.netFunds
+                      )} | FD Interest (6% p.a./month) ${currencyFormatter(
+                        fdInterest
+                      )} | vs P/L ${currencyFormatter(
+                        item.netPnl
+                      )} | Difference ${formatPercent(diffPercent)}`;
+                    })()}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <p className="empty">No monthly trade data available yet.</p>
+      )}
+    </section>
+  );
+}
+
+function BuySellMappingPage({
+  symbolProfitLoss,
+  stockEntries,
+  manualMappings,
+  onAddMapping,
+  onRemoveMapping,
+  onResetSymbol,
+  currency: currencyFormatter,
+  formatDate: formatDateFn,
+}) {
+  const [expandedSymbol, setExpandedSymbol] = useState(null);
+  const [selectedBuyId, setSelectedBuyId] = useState(null);
+  const [selectedSellId, setSelectedSellId] = useState(null);
+
+  const handleAddLink = () => {
+    if (!selectedBuyId || !selectedSellId) return;
+    const buyTx = stockEntries.find((s) => s.id === selectedBuyId);
+    const sellTx = stockEntries.find((s) => s.id === selectedSellId);
+    if (!buyTx || !sellTx) return;
+
+    // Calculate allocated quantities for these transactions
+    const buyAllocated = manualMappings
+      .filter((m) => m.buyId === selectedBuyId)
+      .reduce((sum, m) => sum + m.qty, 0);
+    const sellAllocated = manualMappings
+      .filter((m) => m.sellId === selectedSellId)
+      .reduce((sum, m) => sum + m.qty, 0);
+
+    const buyRemaining = buyTx.quantity - buyAllocated;
+    const sellRemaining = sellTx.quantity - sellAllocated;
+
+    const qty = Math.min(buyRemaining, sellRemaining);
+    onAddMapping({ buyId: selectedBuyId, sellId: selectedSellId, qty });
+    setSelectedBuyId(null);
+    setSelectedSellId(null);
+  };
+
+  const symbols = (
+    symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
+  ).sort();
+
+  return (
+    <section className="panel">
+      <h2>Buy-Sell Mapping</h2>
+      <p className="chart-summary">
+        Manually link buy and sell transactions to define which sales correspond
+        to which purchases.
+      </p>
+
+      {symbols.length ? (
+        <div className="mapping-summary-table">
+          {symbols.map((symbol) => {
+            const isExpanded = expandedSymbol === symbol;
+            const symbolBuys = stockEntries.filter(
+              (item) =>
+                item.symbol === symbol && toAction(item.action) === 'buy'
+            );
+            const symbolSells = stockEntries.filter(
+              (item) =>
+                item.symbol === symbol && toAction(item.action) === 'sell'
+            );
+            const mappingsForSymbol = manualMappings.filter(
+              (m) => m.symbol === symbol
+            );
+
+            // Calculate allocated quantities and total P/L
+            const buyAllocated = {}; // Map of buyId -> allocated qty
+            const sellAllocated = {}; // Map of sellId -> allocated qty
+            let totalLinkedPL = 0;
+
+            mappingsForSymbol.forEach((link) => {
+              buyAllocated[link.buyId] =
+                (buyAllocated[link.buyId] || 0) + link.qty;
+              sellAllocated[link.sellId] =
+                (sellAllocated[link.sellId] || 0) + link.qty;
+
+              const buyTx = stockEntries.find((s) => s.id === link.buyId);
+              const sellTx = stockEntries.find((s) => s.id === link.sellId);
+
+              if (buyTx && sellTx) {
+                const buyCost =
+                  link.qty * buyTx.price +
+                  (buyTx.charges * link.qty) / buyTx.quantity;
+                const sellValue =
+                  link.qty * sellTx.price -
+                  (sellTx.charges * link.qty) / sellTx.quantity;
+                totalLinkedPL += sellValue - buyCost;
+              }
+            });
+
+            // Filter unlinked transactions (those with remaining qty after allocations)
+            const unlinkedBuys = symbolBuys.filter((b) => {
+              const allocated = buyAllocated[b.id] || 0;
+              return allocated < b.quantity;
+            });
+            const unlinkedSells = symbolSells.filter((s) => {
+              const allocated = sellAllocated[s.id] || 0;
+              return allocated < s.quantity;
+            });
+
+            // Calculate average buy price for open stock
+            let totalUnlinkedBuyQty = 0;
+            let totalUnlinkedBuyValue = 0;
+
+            unlinkedBuys.forEach((buy) => {
+              const allocated = buyAllocated[buy.id] || 0;
+              const remaining = buy.quantity - allocated;
+              totalUnlinkedBuyQty += remaining;
+              totalUnlinkedBuyValue +=
+                remaining * buy.price +
+                (buy.charges * remaining) / buy.quantity;
+            });
+
+            const avgOpenBuyPrice =
+              totalUnlinkedBuyQty > 0
+                ? totalUnlinkedBuyValue / totalUnlinkedBuyQty
+                : 0;
+
+            return (
+              <div key={symbol} className="mapping-card">
+                <div
+                  className="mapping-header"
+                  onClick={() => setExpandedSymbol(isExpanded ? null : symbol)}
+                >
+                  <div className="mapping-header-main">
+                    <strong className="symbol-label">{symbol}</strong>
+                  </div>
+                  <div className="mapping-header-end">
+                    {totalUnlinkedBuyQty > 0 && (
+                      <span>
+                        {totalUnlinkedBuyQty} *{' '}
+                        {currencyFormatter(avgOpenBuyPrice)}
+                      </span>
+                    )}
+                    <strong
+                      className={totalLinkedPL >= 0 ? 'cell-good' : 'cell-bad'}
+                    >
+                      {currencyFormatter(totalLinkedPL)}
+                    </strong>
+                    <span className="expand-icon">
+                      {isExpanded ? '−' : '+'}
+                    </span>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="mapping-details">
+                    <div className="mapping-transactions">
+                      <h4>Unlinked Buy Transactions ({unlinkedBuys.length})</h4>
+                      {unlinkedBuys.length > 0 ? (
+                        <ul className="tx-list">
+                          {unlinkedBuys.map((buy) => {
+                            const allocated = buyAllocated[buy.id] || 0;
+                            const remaining = buy.quantity - allocated;
+                            return (
+                              <li
+                                key={buy.id}
+                                className={`tx-item ${
+                                  selectedBuyId === buy.id ? 'selected' : ''
+                                }`}
+                                onClick={() => setSelectedBuyId(buy.id)}
+                              >
+                                <div>
+                                  <span className="tx-qty">
+                                    Qty: {remaining} / {buy.quantity}
+                                  </span>
+                                  <span className="tx-price">
+                                    {currencyFormatter(buy.price)}
+                                  </span>
+                                  <span className="tx-date">
+                                    {formatDateFn(buy.date)}
+                                  </span>
+                                </div>
+                                <div className="tx-value">
+                                  {currencyFormatter(
+                                    remaining * buy.price +
+                                      (buy.charges * remaining) / buy.quantity
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="no-transactions">
+                          All buy transactions are fully linked.
+                        </p>
+                      )}
+
+                      <h4>
+                        Unlinked Sell Transactions ({unlinkedSells.length})
+                      </h4>
+                      {unlinkedSells.length > 0 ? (
+                        <ul className="tx-list">
+                          {unlinkedSells.map((sell) => {
+                            const allocated = sellAllocated[sell.id] || 0;
+                            const remaining = sell.quantity - allocated;
+                            return (
+                              <li
+                                key={sell.id}
+                                className={`tx-item ${
+                                  selectedSellId === sell.id ? 'selected' : ''
+                                }`}
+                                onClick={() => setSelectedSellId(sell.id)}
+                              >
+                                <div>
+                                  <span className="tx-qty">
+                                    Qty: {remaining} / {sell.quantity}
+                                  </span>
+                                  <span className="tx-price">
+                                    {currencyFormatter(sell.price)}
+                                  </span>
+                                  <span className="tx-date">
+                                    {formatDateFn(sell.date)}
+                                  </span>
+                                </div>
+                                <div className="tx-value">
+                                  {currencyFormatter(
+                                    remaining * sell.price -
+                                      (sell.charges * remaining) / sell.quantity
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="no-transactions">
+                          All sell transactions are fully linked.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mapping-control">
+                      {selectedBuyId &&
+                        selectedSellId &&
+                        (() => {
+                          const buyTx = stockEntries.find(
+                            (s) => s.id === selectedBuyId
+                          );
+                          const sellTx = stockEntries.find(
+                            (s) => s.id === selectedSellId
+                          );
+                          if (!buyTx || !sellTx) return null;
+
+                          const buyAllocatedQty = buyAllocated[buyTx.id] || 0;
+                          const sellAllocatedQty =
+                            sellAllocated[sellTx.id] || 0;
+                          const buyRemaining = buyTx.quantity - buyAllocatedQty;
+                          const sellRemaining =
+                            sellTx.quantity - sellAllocatedQty;
+                          const linkQty = Math.min(buyRemaining, sellRemaining);
+
+                          return (
+                            <div className="control-group">
+                              <button onClick={handleAddLink} disabled={false}>
+                                Create Link ({linkQty} qty)
+                              </button>
+                            </div>
+                          );
+                        })()}
+
+                      <div className="existing-links">
+                        <h4>Manual Links ({mappingsForSymbol.length})</h4>
+                        {mappingsForSymbol.length > 0 ? (
+                          <ul className="links-list">
+                            {mappingsForSymbol.map((link, idx) => {
+                              const buyTx = stockEntries.find(
+                                (s) => s.id === link.buyId
+                              );
+                              const sellTx = stockEntries.find(
+                                (s) => s.id === link.sellId
+                              );
+                              const buyCost =
+                                link.qty * buyTx.price +
+                                (buyTx.charges * link.qty) / buyTx.quantity;
+                              const sellValue =
+                                link.qty * sellTx.price -
+                                (sellTx.charges * link.qty) / sellTx.quantity;
+                              const linkPL = sellValue - buyCost;
+
+                              return (
+                                <li key={idx} className="link-item">
+                                  <div className="link-details-wrapper">
+                                    <div className="link-info">
+                                      <span className="link-detail">
+                                        {link.qty} @{' '}
+                                        {currencyFormatter(buyTx?.price || 0)} →{' '}
+                                        {currencyFormatter(sellTx?.price || 0)}
+                                      </span>
+                                      <span
+                                        className={`link-pl ${
+                                          linkPL >= 0 ? 'cell-good' : 'cell-bad'
+                                        }`}
+                                      >
+                                        {currencyFormatter(linkPL)}
+                                      </span>
+                                    </div>
+                                    <div className="link-dates">
+                                      <span className="link-date">
+                                        Buy: {formatDateFn(buyTx?.date)}
+                                      </span>
+                                      <span className="link-date">
+                                        Sell: {formatDateFn(sellTx?.date)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    className="remove-link-btn"
+                                    onClick={() =>
+                                      onRemoveMapping(link.buyId, link.sellId)
+                                    }
+                                  >
+                                    Remove
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="no-links">No manual links yet.</p>
+                        )}
+                      </div>
+
+                      {mappingsForSymbol.length > 0 && (
+                        <button
+                          className="reset-btn"
+                          onClick={() => onResetSymbol(symbol)}
+                        >
+                          Clear All Links
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="empty">
+          No trades yet. Add buy and sell entries to start mapping.
         </p>
       )}
     </section>
@@ -1294,6 +1313,9 @@ export default function App() {
   const [stockFilter, setStockFilter] = useState('ALL');
   const [yamlText, setYamlText] = useState('');
   const [yamlStatus, setYamlStatus] = useState('');
+  const [manualMappings, setManualMappings] = useState(() =>
+    readStorage(MANUAL_MAPPINGS_KEY)
+  );
 
   const activeSymbolInput = editingStockId
     ? editStockForm.symbol
@@ -1378,6 +1400,35 @@ export default function App() {
         tradeCashFlow: 0,
       }
     );
+
+    const monthlyAccumulator = {};
+    const ensureMonthBucket = (monthKey) => {
+      if (!monthKey) return null;
+      if (!monthlyAccumulator[monthKey]) {
+        monthlyAccumulator[monthKey] = {
+          monthKey,
+          fundDelta: 0,
+          realizedPnlBeforeDp: 0,
+          dpCharges: 0,
+        };
+      }
+      return monthlyAccumulator[monthKey];
+    };
+
+    cashEntries.forEach((item) => {
+      const monthBucket = ensureMonthBucket(getMonthKey(item.date));
+      if (!monthBucket) return;
+
+      const amount = toNumber(item.amount);
+      if (item.type === 'deposit') {
+        monthBucket.fundDelta += amount;
+        return;
+      }
+
+      if (item.type === 'withdraw') {
+        monthBucket.fundDelta -= amount;
+      }
+    });
 
     const stocksBySymbol = orderedStocks.reduce((map, item) => {
       if (!map[item.symbol]) map[item.symbol] = [];
@@ -1477,6 +1528,14 @@ export default function App() {
               intradayBuyGrossValue + intradayBuyCharges;
             summary.matchedSellValue +=
               intradaySellGrossValue - intradaySellCharges;
+
+            const monthBucket = ensureMonthBucket(dateKey.slice(0, 7));
+            if (monthBucket) {
+              monthBucket.realizedPnlBeforeDp +=
+                intradaySellGrossValue -
+                intradaySellCharges -
+                (intradayBuyGrossValue + intradayBuyCharges);
+            }
           }
 
           const remainingBuyQty = dayBuyQty - intradayQty;
@@ -1519,6 +1578,14 @@ export default function App() {
               summary.matchedSellValue +=
                 matchedSellGrossValue - matchedSellCharges;
 
+              const monthBucket = ensureMonthBucket(dateKey.slice(0, 7));
+              if (monthBucket) {
+                monthBucket.realizedPnlBeforeDp +=
+                  matchedSellGrossValue -
+                  matchedSellCharges -
+                  (matchedBuyGrossValue + matchedBuyCharges);
+              }
+
               lot.qty -= matchedQty;
               lot.grossValue -= matchedBuyGrossValue;
               lot.charges -= matchedBuyCharges;
@@ -1555,6 +1622,35 @@ export default function App() {
       (sum, item) => sum + Math.abs(toNumber(item.amount)),
       0
     );
+
+    dpChargeEntries.forEach((item) => {
+      const monthBucket = ensureMonthBucket(getMonthKey(item.date));
+      if (!monthBucket) return;
+      monthBucket.dpCharges += Math.abs(toNumber(item.amount));
+    });
+
+    let runningNetFunds = 0;
+    const monthlyPerformanceRows = Object.keys(monthlyAccumulator)
+      .sort()
+      .map((monthKey) => {
+        const item = monthlyAccumulator[monthKey];
+        runningNetFunds += item.fundDelta;
+        const netPnl = item.realizedPnlBeforeDp - item.dpCharges;
+        return {
+          ...item,
+          netFunds: runningNetFunds,
+          netPnl,
+          gainPercent:
+            runningNetFunds > 0 ? (netPnl / runningNetFunds) * 100 : null,
+        };
+      })
+      .filter(
+        (item) =>
+          item.fundDelta !== 0 ||
+          item.realizedPnlBeforeDp !== 0 ||
+          item.dpCharges > 0
+      );
+
     const pnlAfterDpCharges = closedTradeDiff - totalDpCharges;
 
     const symbolProfitLossRows = Object.values(symbolProfitLoss)
@@ -1679,7 +1775,9 @@ export default function App() {
       pnlBeforeDpCharges: closedTradeDiff,
       holdings,
       investedByStock,
+      symbolProfitLoss,
       symbolProfitLossRows,
+      monthlyPerformanceRows,
       allocationLegend,
       allocationGradient,
       allocationTotal,
@@ -1805,6 +1903,45 @@ export default function App() {
     const next = stockEntries.filter((item) => item.id !== id);
     setStockEntries(next);
     saveStorage(STOCK_KEY, next);
+  };
+
+  const addManualMapping = ({ buyId, sellId, qty }) => {
+    const buyTx = stockEntries.find((s) => s.id === buyId);
+    const sellTx = stockEntries.find((s) => s.id === sellId);
+    if (!buyTx || !sellTx || buyTx.symbol !== sellTx.symbol) return;
+
+    const numQty = toNumber(qty);
+    if (numQty <= 0 || numQty > buyTx.quantity || numQty > sellTx.quantity)
+      return;
+
+    const next = [
+      ...manualMappings.filter(
+        (m) => !(m.buyId === buyId && m.sellId === sellId)
+      ),
+      {
+        buyId,
+        sellId,
+        qty: numQty,
+        symbol: buyTx.symbol,
+        createdAt: Date.now(),
+      },
+    ];
+    setManualMappings(next);
+    saveStorage(MANUAL_MAPPINGS_KEY, next);
+  };
+
+  const removeManualMapping = (buyId, sellId) => {
+    const next = manualMappings.filter(
+      (m) => !(m.buyId === buyId && m.sellId === sellId)
+    );
+    setManualMappings(next);
+    saveStorage(MANUAL_MAPPINGS_KEY, next);
+  };
+
+  const resetSymbolMappings = (symbol) => {
+    const next = manualMappings.filter((m) => m.symbol !== symbol);
+    setManualMappings(next);
+    saveStorage(MANUAL_MAPPINGS_KEY, next);
   };
 
   const startStockEdit = (item) => {
@@ -2039,23 +2176,35 @@ export default function App() {
           }
         />
         <Route
-          path="/stock-map"
-          element={
-            <StockMapPage
-              stockEntries={stockEntries}
-              currency={currency}
-              toAction={toAction}
-              toNumber={toNumber}
-            />
-          }
-        />
-
-        <Route
           path="/symbol-pnl"
           element={
             <SymbolPnlPage
               symbolProfitLossRows={totals.symbolProfitLossRows}
               currency={currency}
+            />
+          }
+        />
+        <Route
+          path="/monthly-pnl"
+          element={
+            <MonthlyPnlPage
+              monthlyPerformanceRows={totals.monthlyPerformanceRows}
+              currency={currency}
+            />
+          }
+        />
+        <Route
+          path="/buy-sell-mapping"
+          element={
+            <BuySellMappingPage
+              symbolProfitLoss={totals.symbolProfitLoss}
+              stockEntries={stockEntries}
+              manualMappings={manualMappings}
+              onAddMapping={addManualMapping}
+              onRemoveMapping={removeManualMapping}
+              onResetSymbol={resetSymbolMappings}
+              currency={currency}
+              formatDate={formatDate}
             />
           }
         />
