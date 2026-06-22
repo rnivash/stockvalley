@@ -1,12 +1,10 @@
 :root {
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: #0f172a;
-  background: radial-gradient(
-    circle at 25% 15%,
-    #fef3c7,
-    #f8fafc 45%,
-    #e0f2fe 100%
-  );
+  background: radial-gradient(circle at 25% 15%,
+      #fef3c7,
+      #f8fafc 45%,
+      #e0f2fe 100%);
 }
 
 * {
@@ -652,7 +650,7 @@ textarea {
   flex-shrink: 0;
 }
 
-.stock-map-drop-item > div {
+.stock-map-drop-item>div {
   display: grid;
   gap: 0.05rem;
 }
@@ -990,7 +988,7 @@ textarea {
   box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
 }
 
-.tx-item > div:first-child {
+.tx-item>div:first-child {
   display: flex;
   gap: 0.6rem;
   flex: 1;
@@ -1217,10 +1215,8 @@ textarea {
   }
 
   .stock-map-buy-row {
-    grid-template-columns: minmax(220px, 1fr) minmax(240px, 1.4fr) minmax(
-        120px,
-        0.45fr
-      );
+    grid-template-columns: minmax(220px, 1fr) minmax(240px, 1.4fr) minmax(120px,
+        0.45fr);
     align-items: stretch;
   }
 

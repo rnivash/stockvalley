@@ -103,17 +103,28 @@ const formatDate = (value) => {
 };
 
 const getDateKey = (value) => {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
   const date = toDate(value);
   if (!date) return null;
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const getMonthKey = (value) => {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value.slice(0, 7);
+  }
+
   const date = toDate(value);
   if (!date) return null;
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString().slice(0, 7);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 };
 
 const formatMonthLabel = (value) => {
@@ -247,6 +258,13 @@ function AppNav() {
         >
           <span className="nav-label">Monthly P/L</span>
           <small className="nav-hint">Profit and gain % trend</small>
+        </NavLink>
+        <NavLink
+          to="/daily-pnl"
+          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+        >
+          <span className="nav-label">Daily P/L</span>
+          <small className="nav-hint">Day-wise profit breakdown</small>
         </NavLink>
         <NavLink
           to="/buy-sell-mapping"
@@ -1036,9 +1054,8 @@ function BuySellMappingPage({
                             return (
                               <li
                                 key={buy.id}
-                                className={`tx-item ${
-                                  selectedBuyId === buy.id ? 'selected' : ''
-                                }`}
+                                className={`tx-item ${selectedBuyId === buy.id ? 'selected' : ''
+                                  }`}
                                 onClick={() => setSelectedBuyId(buy.id)}
                               >
                                 <div>
@@ -1055,7 +1072,7 @@ function BuySellMappingPage({
                                 <div className="tx-value">
                                   {currencyFormatter(
                                     remaining * buy.price +
-                                      (buy.charges * remaining) / buy.quantity
+                                    (buy.charges * remaining) / buy.quantity
                                   )}
                                 </div>
                               </li>
@@ -1079,9 +1096,8 @@ function BuySellMappingPage({
                             return (
                               <li
                                 key={sell.id}
-                                className={`tx-item ${
-                                  selectedSellId === sell.id ? 'selected' : ''
-                                }`}
+                                className={`tx-item ${selectedSellId === sell.id ? 'selected' : ''
+                                  }`}
                                 onClick={() => setSelectedSellId(sell.id)}
                               >
                                 <div>
@@ -1098,7 +1114,7 @@ function BuySellMappingPage({
                                 <div className="tx-value">
                                   {currencyFormatter(
                                     remaining * sell.price -
-                                      (sell.charges * remaining) / sell.quantity
+                                    (sell.charges * remaining) / sell.quantity
                                   )}
                                 </div>
                               </li>
@@ -1170,9 +1186,8 @@ function BuySellMappingPage({
                                         {currencyFormatter(sellTx?.price || 0)}
                                       </span>
                                       <span
-                                        className={`link-pl ${
-                                          linkPL >= 0 ? 'cell-good' : 'cell-bad'
-                                        }`}
+                                        className={`link-pl ${linkPL >= 0 ? 'cell-good' : 'cell-bad'
+                                          }`}
                                       >
                                         {currencyFormatter(linkPL)}
                                       </span>
@@ -1233,7 +1248,6 @@ function DataYamlPage({
   yamlStatus,
   exportAllDataAsYaml,
   importAllDataFromYaml,
-  importFromGitHub,
 }) {
   return (
     <section className="panel">
@@ -1248,9 +1262,6 @@ function DataYamlPage({
         <button type="button" onClick={importAllDataFromYaml}>
           Import From YAML
         </button>
-        <button type="button" onClick={importFromGitHub}>
-          Import from GitHub
-        </button>
       </div>
       <textarea
         className="yaml-editor"
@@ -1259,6 +1270,102 @@ function DataYamlPage({
         onChange={(event) => setYamlText(event.target.value)}
       />
       {yamlStatus ? <p className="chart-summary">{yamlStatus}</p> : null}
+    </section>
+  );
+}
+
+function DailyPLPage({
+  dailyPLData,
+  currency: currencyFormatter,
+  formatDate: formatDateFn,
+}) {
+  const today = new Date();
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  const defaultEndDate = getDateKey(today) || '';
+  const defaultStartDate = getDateKey(currentMonthStart) || defaultEndDate;
+
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
+
+  const filteredData = dailyPLData.filter((item) => {
+    const itemDate = new Date(item.date).getTime();
+    const startTime = new Date(startDate).getTime();
+    const endTime = new Date(endDate).getTime();
+    return itemDate >= startTime && itemDate <= endTime;
+  });
+
+  const stats = filteredData.length > 0 ? {
+    totalDays: filteredData.length,
+    avgDailyPL: filteredData.reduce((sum, item) => sum + item.pnl, 0) / filteredData.length,
+    bestDay: Math.max(...filteredData.map((item) => item.pnl)),
+    worstDay: Math.min(...filteredData.map((item) => item.pnl)),
+  } : null;
+
+  return (
+    <section className="panel">
+      <h2>Day Wise Profit / Loss</h2>
+      <p className="chart-summary">
+        P/L breakdown for each day trades were closed. Includes realized trade P/L and allocated DP charges.
+      </p>
+
+      <div className="filter-row" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div>
+          <label style={{ marginRight: '0.5rem' }}>From:</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ padding: '0.5rem' }}
+          />
+        </div>
+        <div>
+          <label style={{ marginRight: '0.5rem' }}>To:</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ padding: '0.5rem' }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setStartDate(defaultStartDate);
+            setEndDate(defaultEndDate);
+          }}
+          style={{ padding: '0.5rem 1rem' }}
+        >
+          Reset
+        </button>
+      </div>
+
+      {filteredData.length > 0 ? (
+        <div className="pnl-table" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
+                <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold' }}>P/L</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...filteredData].reverse().map((item) => (
+                <tr key={item.date} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '0.75rem' }}>{formatDateFn(item.date)}</td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    <span className={item.pnl >= 0 ? 'cell-good' : 'cell-bad'}>
+                      {currencyFormatter(item.pnl)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="empty">No trades in the selected date range.</p>
+      )}
     </section>
   );
 }
@@ -1755,6 +1862,51 @@ export default function App() {
 
     const finalAmount = cashDeposited + pnlAfterDpCharges;
 
+    // Calculate daily P/L data
+    const dailyPLMap = {};
+    stockEntries.forEach((item) => {
+      if (toAction(item.action) === 'sell') {
+        const dateKey = getDateKey(item.date);
+        if (!dateKey) return;
+        if (!dailyPLMap[dateKey]) {
+          dailyPLMap[dateKey] = {
+            date: dateKey,
+            tradeCount: 0,
+            symbols: new Set(),
+            realizedValue: 0,
+            volume: 0,
+          };
+        }
+        dailyPLMap[dateKey].tradeCount += 1;
+        dailyPLMap[dateKey].symbols.add(item.symbol);
+        const qty = toNumber(item.quantity);
+        const price = toNumber(item.price);
+        dailyPLMap[dateKey].realizedValue += qty * price;
+        dailyPLMap[dateKey].volume += qty;
+      }
+    });
+
+    // Calculate proportional P/L for each day
+    const dailyPLData = Object.values(dailyPLMap).map((day) => {
+      const dayProportion = realizedSummary.matchedSellGrossValue > 0
+        ? day.realizedValue / realizedSummary.matchedSellGrossValue
+        : 0;
+      const dpChargeAllocation = dayProportion * totalDpCharges;
+      const estimatedDayPnl = dayProportion * closedTradeDiffWithoutCharges - dpChargeAllocation;
+
+      const gainPercent = day.realizedValue > 0
+        ? (estimatedDayPnl / day.realizedValue) * 100
+        : 0;
+
+      return {
+        date: day.date,
+        pnl: estimatedDayPnl,
+        tradeCount: day.tradeCount,
+        symbols: Array.from(day.symbols).sort(),
+        gainPercent,
+      };
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
     return {
       remainingCash: finalAmount,
       netFundsOnly: cashDeposited,
@@ -1778,6 +1930,7 @@ export default function App() {
       symbolProfitLoss,
       symbolProfitLossRows,
       monthlyPerformanceRows,
+      dailyPLData,
       allocationLegend,
       allocationGradient,
       allocationTotal,
@@ -1995,14 +2148,14 @@ export default function App() {
     const next = stockEntries.map((item) =>
       item.id === id
         ? {
-            ...item,
-            action,
-            symbol,
-            quantity,
-            price,
-            charges,
-            date: editStockForm.date || new Date().toISOString().slice(0, 10),
-          }
+          ...item,
+          action,
+          symbol,
+          quantity,
+          price,
+          charges,
+          date: editStockForm.date || new Date().toISOString().slice(0, 10),
+        }
         : item
     );
 
@@ -2047,11 +2200,11 @@ export default function App() {
       );
       const nextDpChargeEntries = Array.isArray(parsed.dpChargeEntries)
         ? parsed.dpChargeEntries.map((item) => ({
-            id: item?.id ? String(item.id) : crypto.randomUUID(),
-            amount: Math.abs(toNumber(item?.amount)),
-            note: String(item?.note || ''),
-            date: item?.date || new Date().toISOString().slice(0, 10),
-          }))
+          id: item?.id ? String(item.id) : crypto.randomUUID(),
+          amount: Math.abs(toNumber(item?.amount)),
+          note: String(item?.note || ''),
+          date: item?.date || new Date().toISOString().slice(0, 10),
+        }))
         : [];
       const nextSymbolSuggestions = Array.isArray(parsed.symbolSuggestions)
         ? normalizeSymbols(parsed.symbolSuggestions)
@@ -2071,35 +2224,7 @@ export default function App() {
       setYamlStatus('YAML data imported successfully.');
     } catch (error) {
       setYamlStatus(
-        `Import failed: ${
-          error instanceof Error ? error.message : 'Invalid YAML data.'
-        }`
-      );
-    }
-  };
-
-  const importFromGitHub = async () => {
-    try {
-      setYamlStatus('Fetching data from GitHub...');
-      const response = await fetch(
-        'https://raw.githubusercontent.com/rnivash/stockvalley/refs/heads/main/public/data.yaml'
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `GitHub fetch failed: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const yaml = await response.text();
-      setYamlText(yaml);
-      setYamlStatus('GitHub data loaded. Click "Import From YAML" to import.');
-    } catch (error) {
-      setYamlStatus(
-        `GitHub import failed: ${
-          error instanceof Error
-            ? error.message
-            : 'Unable to fetch from GitHub.'
+        `Import failed: ${error instanceof Error ? error.message : 'Invalid YAML data.'
         }`
       );
     }
@@ -2194,6 +2319,16 @@ export default function App() {
           }
         />
         <Route
+          path="/daily-pnl"
+          element={
+            <DailyPLPage
+              dailyPLData={totals.dailyPLData}
+              currency={currency}
+              formatDate={formatDate}
+            />
+          }
+        />
+        <Route
           path="/buy-sell-mapping"
           element={
             <BuySellMappingPage
@@ -2217,7 +2352,6 @@ export default function App() {
               yamlStatus={yamlStatus}
               exportAllDataAsYaml={exportAllDataAsYaml}
               importAllDataFromYaml={importAllDataFromYaml}
-              importFromGitHub={importFromGitHub}
             />
           }
         />
