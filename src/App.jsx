@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { dump, load } from 'js-yaml';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 
 const CASH_KEY = 'stockvalley-cash-entries';
 const STOCK_KEY = 'stockvalley-stock-entries';
@@ -141,42 +148,75 @@ const formatMonthLabel = (value) => {
   });
 };
 
-const toDateTime = (value) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-};
+function CustomSelect({ id, value, onChange, children }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef(null);
 
-const formatTradeStamp = (item, currencyFormatter) => {
-  const date = new Date(item.date);
-  const dateMonth = Number.isNaN(date.getTime())
-    ? 'No date'
-    : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  const options = [];
+  if (children) {
+    const arr = Array.isArray(children) ? children.flat() : [children];
+    arr.forEach((child) => {
+      if (!child || !child.props) return;
+      options.push({
+        value: String(child.props.value ?? ''),
+        label: child.props.children,
+      });
+    });
+  }
 
-  return `(${currencyFormatter(item.price)} * ${item.quantity} / ${dateMonth})`;
-};
+  const selectedLabel =
+    options.find((o) => o.value === String(value))?.label ?? value;
 
-const formatDateMonth = (value) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? 'No date'
-    : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-};
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
 
-const formatQtyPrice = (item, currencyFormatter) =>
-  `${item.quantity} x ${currencyFormatter(item.price)}`;
+  const handleSelect = (val) => {
+    onChange({ target: { value: val } });
+    setIsOpen(false);
+  };
 
-const sortTrades = (items) =>
-  [...items].sort((a, b) => {
-    const aTime = toDateTime(a.date);
-    const bTime = toDateTime(b.date);
-    if (aTime !== bTime) return aTime - bTime;
-
-    const aCreated = Number(a.createdAt) || 0;
-    const bCreated = Number(b.createdAt) || 0;
-    if (aCreated !== bCreated) return aCreated - bCreated;
-
-    return String(a.id).localeCompare(String(b.id));
-  });
+  return (
+    <div className={`custom-select${isOpen ? ' open' : ''}`} ref={ref} id={id}>
+      <button
+        type="button"
+        className="custom-select-btn"
+        onClick={() => setIsOpen((p) => !p)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span className="custom-select-value">{selectedLabel}</span>
+        <span className="custom-select-chevron" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M7 10l5 5 5-5z" />
+          </svg>
+        </span>
+      </button>
+      {isOpen && (
+        <ul className="custom-select-list" role="listbox">
+          {options.map((opt) => (
+            <li
+              key={opt.value}
+              className={`custom-select-item${
+                opt.value === String(value) ? ' selected' : ''
+              }`}
+              role="option"
+              aria-selected={opt.value === String(value)}
+              onMouseDown={() => handleSelect(opt.value)}
+            >
+              {opt.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function Card({ label, value, tone = 'normal' }) {
   return (
@@ -211,107 +251,183 @@ function List({
   );
 }
 
-function AppNav() {
+function AppNav({ inHero = false }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsExpanded(false);
+  }, [location.pathname]);
+
   return (
-    <section className="nav-wrap">
-      <p className="nav-title">Navigate</p>
-      <nav className="app-nav">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+    <section className={`nav-wrap${inHero ? ' nav-wrap-inline' : ''}`}>
+      <div className="nav-head">
+        <button
+          type="button"
+          className="nav-toggle-btn"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          aria-expanded={isExpanded}
+          aria-label={
+            isExpanded ? 'Collapse navigation panel' : 'Expand navigation panel'
+          }
         >
-          <span className="nav-label">Dashboard</span>
-          <small className="nav-hint">Total amount and P/L</small>
-        </NavLink>
-        <NavLink
-          to="/money"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          <span className="nav-toggle-icon" aria-hidden="true">
+            {isExpanded ? (
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M18.3 5.71L12 12.01l-6.3-6.3-1.41 1.41 6.3 6.3-6.3 6.29 1.41 1.42 6.3-6.3 6.29 6.3 1.42-1.42-6.3-6.29 6.3-6.3z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" />
+              </svg>
+            )}
+          </span>
+        </button>
+      </div>
+      {isExpanded && (
+        <nav
+          className="app-nav"
+          onClick={(event) => {
+            const target = event.target;
+            if (target instanceof Element && target.closest('a')) {
+              setIsExpanded(false);
+            }
+          }}
         >
-          <span className="nav-label">Money Movement</span>
-          <small className="nav-hint">Add and view entries</small>
-        </NavLink>
-        <NavLink
-          to="/stocks"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Stock Entries</span>
-          <small className="nav-hint">Add and view trades</small>
-        </NavLink>
-        <NavLink
-          to="/dp-charges"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">DP Charges</span>
-          <small className="nav-hint">Add delivery charges</small>
-        </NavLink>
-        <NavLink
-          to="/symbol-pnl"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Symbol P/L</span>
-          <small className="nav-hint">Closed qty averages</small>
-        </NavLink>
-        <NavLink
-          to="/monthly-pnl"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Monthly P/L</span>
-          <small className="nav-hint">Profit and gain % trend</small>
-        </NavLink>
-        <NavLink
-          to="/daily-pnl"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Daily P/L</span>
-          <small className="nav-hint">Day-wise profit breakdown</small>
-        </NavLink>
-        <NavLink
-          to="/buy-sell-mapping"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Buy-Sell Mapping</span>
-          <small className="nav-hint">Match buys and sells</small>
-        </NavLink>
-        <NavLink
-          to="/data-yaml"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-        >
-          <span className="nav-label">Data YAML</span>
-          <small className="nav-hint">Import or export all data</small>
-        </NavLink>
-      </nav>
+          <NavLink
+            to="/money"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Money Movement</span>
+            <small className="nav-hint">Add and view entries</small>
+          </NavLink>
+          <NavLink
+            to="/stocks"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Stock Entries</span>
+            <small className="nav-hint">Add and view trades</small>
+          </NavLink>
+          <NavLink
+            to="/dp-charges"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">DP Charges</span>
+            <small className="nav-hint">Add delivery charges</small>
+          </NavLink>
+          <NavLink
+            to="/symbol-pnl"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Symbol P/L</span>
+            <small className="nav-hint">Closed qty averages</small>
+          </NavLink>
+          <NavLink
+            to="/monthly-pnl"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Monthly P/L</span>
+            <small className="nav-hint">Profit and gain % trend</small>
+          </NavLink>
+          <NavLink
+            to="/daily-pnl"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Daily P/L</span>
+            <small className="nav-hint">Day-wise profit breakdown</small>
+          </NavLink>
+          <NavLink
+            to="/buy-sell-mapping"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Buy-Sell Mapping</span>
+            <small className="nav-hint">Match buys and sells</small>
+          </NavLink>
+          <NavLink
+            to="/data-yaml"
+            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+          >
+            <span className="nav-label">Data YAML</span>
+            <small className="nav-hint">Import or export all data</small>
+          </NavLink>
+        </nav>
+      )}
     </section>
   );
 }
 
-function DashboardPage({ totals, currency: currencyFormatter }) {
+function DashboardPage({
+  totals,
+  currency: currencyFormatter,
+  openStockAges = {},
+  mappingOpenAvgPrices = {},
+}) {
+  const netProfit =
+    totals.closedTradeDiffWithoutCharges -
+    totals.totalCharges -
+    totals.totalDpCharges -
+    totals.totalLoss;
+  const takeHomeFund = totals.netFundsOnly + netProfit;
+
   return (
     <>
       <section className="summary-grid">
-        <Card
-          label="Money I Invested"
-          value={currencyFormatter(totals.netFundsOnly)}
-        />
-        <article className={`card ${totals.pnl >= 0 ? 'good' : 'bad'}`}>
-          <small>Profit / Loss</small>
-          <p className="card-subline">
-            {currencyFormatter(totals.closedTradeDiffWithoutCharges)} - (
-            {currencyFormatter(totals.closedTradeCharges)} +{' '}
-            {currencyFormatter(totals.totalDpCharges)})
-          </p>
-          <h3>{currencyFormatter(totals.pnl)}</h3>
+        <article className="card good">
+          <small>Deposits &amp; Withdrawals</small>
+          <div className="metric-badges">
+            <span className="metric-badge deposit">
+              Deposited {currencyFormatter(totals.totalFundAdded)}
+            </span>
+            <span className="metric-badge withdrawn">
+              Withdrawn {currencyFormatter(totals.totalFundWithdrawn)}
+            </span>
+            <span className="metric-badge net-funds">
+              Net Funds {currencyFormatter(totals.netFundsOnly)}
+            </span>
+            <span
+              className={`metric-badge ${
+                totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad'
+              }`}
+            >
+              Trade Balance {currencyFormatter(totals.projectedAmount)}
+            </span>
+          </div>
         </article>
-        <Card
-          label="Total worth"
-          value={currencyFormatter(totals.netFundsOnly + totals.pnl)}
-          tone={totals.netFundsOnly + totals.pnl >= 0 ? 'good' : 'bad'}
-        />
-        <Card
-          label="Balance Amount for Trade"
-          value={currencyFormatter(totals.projectedAmount)}
-          tone={totals.projectedAmount >= 0 ? 'good' : 'bad'}
-        />
+
+        <article className="card good">
+          <small>Profit & Loss</small>
+          <div className="pnl-badges">
+            <span className="pnl-badge tax">
+              Tax {currencyFormatter(totals.totalCharges)}
+            </span>
+            <span className="pnl-badge dp">
+              DP {currencyFormatter(totals.totalDpCharges)}
+            </span>
+            <span className="pnl-badge loss">
+              Loss {currencyFormatter(totals.totalLoss)}
+            </span>
+          </div>
+          <div className="metric-badges">
+            <span className="metric-badge gross-profit">
+              Gross Profit{' '}
+              {currencyFormatter(totals.closedTradeDiffWithoutCharges)}
+            </span>
+            <span
+              className={`metric-badge ${
+                netProfit >= 0 ? 'net-profit-good' : 'net-profit-bad'
+              }`}
+            >
+              Net Profit {currencyFormatter(netProfit)}
+            </span>
+            <span
+              className={`metric-badge ${
+                takeHomeFund >= 0 ? 'take-home-good' : 'take-home-bad'
+              }`}
+            >
+              Take Home {currencyFormatter(takeHomeFund)}
+            </span>
+          </div>
+        </article>
       </section>
 
       <section className="panel">
@@ -323,27 +439,54 @@ function DashboardPage({ totals, currency: currencyFormatter }) {
               style={{ background: totals.allocationGradient }}
             />
             <ul className="allocation-legend">
-              {totals.allocationLegend.map((item) => (
-                <li key={item.label}>
-                  <span
-                    className="dot"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <div>
-                    <strong>{item.label}</strong>
-                    <p>
-                      {currencyFormatter(item.value)} ({item.percent.toFixed(1)}
-                      %)
-                    </p>
-                    {item.quantity !== null && item.avgPrice !== null && (
-                      <p className="allocation-details">
-                        Qty {item.quantity} | Avg Price{' '}
-                        {currencyFormatter(item.avgPrice)}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
+              {totals.allocationLegend.map((item) => {
+                const openAvgPrice =
+                  mappingOpenAvgPrices[item.label] ?? item.avgPrice;
+                const projectedSellPrice =
+                  openAvgPrice !== null && typeof openAvgPrice !== 'undefined'
+                    ? openAvgPrice * 1.04
+                    : null;
+
+                return (
+                  <li key={item.label}>
+                    <span
+                      className="dot"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <div>
+                      <strong>{item.label}</strong>
+                      <div className="allocation-badges">
+                        <span className="metric-badge allocation-invested">
+                          {currencyFormatter(item.value)}
+                        </span>
+                        <span className="metric-badge allocation-percent">
+                          {item.percent.toFixed(1)}%
+                        </span>
+                      </div>
+                      {item.quantity !== null && item.avgPrice !== null && (
+                        <div className="allocation-badges">
+                          <span className="metric-badge allocation-qty">
+                            Qty {item.quantity}
+                          </span>
+                          <span className="metric-badge allocation-avg">
+                            Avg Price {currencyFormatter(openAvgPrice)}
+                          </span>
+                          {projectedSellPrice !== null && (
+                            <span className="metric-badge allocation-target">
+                              Sell @ +4% {currencyFormatter(projectedSellPrice)}
+                            </span>
+                          )}
+                          {openStockAges[item.label] !== undefined && (
+                            <span className="stock-age-badge">
+                              {openStockAges[item.label]}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : (
@@ -367,13 +510,13 @@ function MoneyPage({
     <section className="panel">
       <h2>Money Movement</h2>
       <form className="form-grid" onSubmit={addCashEntry}>
-        <select
+        <CustomSelect
           value={cashForm.type}
           onChange={(e) => setCashForm((f) => ({ ...f, type: e.target.value }))}
         >
           <option value="deposit">Deposit</option>
           <option value="withdraw">Withdraw</option>
-        </select>
+        </CustomSelect>
         <input
           type="number"
           min="0"
@@ -585,7 +728,7 @@ function StocksPage({
 
       <div className="stock-filter-row">
         <label htmlFor="stock-symbol-filter">Filter by Symbol</label>
-        <select
+        <CustomSelect
           id="stock-symbol-filter"
           value={stockFilter}
           onChange={(e) => setStockFilter(e.target.value)}
@@ -596,7 +739,7 @@ function StocksPage({
               {symbol}
             </option>
           ))}
-        </select>
+        </CustomSelect>
       </div>
 
       <List
@@ -613,7 +756,7 @@ function StocksPage({
             return (
               <>
                 <div className="edit-fields">
-                  <select
+                  <CustomSelect
                     value={editStockForm.action}
                     onChange={(e) =>
                       setEditStockForm((f) => ({
@@ -624,7 +767,7 @@ function StocksPage({
                   >
                     <option value="buy">Buy</option>
                     <option value="sell">Sell</option>
-                  </select>
+                  </CustomSelect>
                   <input
                     type="text"
                     placeholder="Symbol"
@@ -910,6 +1053,8 @@ function BuySellMappingPage({
   const [expandedSymbol, setExpandedSymbol] = useState(null);
   const [selectedBuyId, setSelectedBuyId] = useState(null);
   const [selectedSellId, setSelectedSellId] = useState(null);
+  const [symbolFilter, setSymbolFilter] = useState('ALL');
+  const [showOpenOnly, setShowOpenOnly] = useState(false);
 
   const handleAddLink = () => {
     if (!selectedBuyId || !selectedSellId) return;
@@ -934,9 +1079,28 @@ function BuySellMappingPage({
     setSelectedSellId(null);
   };
 
-  const symbols = (
+  const allSymbols = (
     symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
   ).sort();
+
+  const symbols = allSymbols.filter((symbol) => {
+    if (symbolFilter !== 'ALL' && symbol !== symbolFilter) return false;
+    if (showOpenOnly) {
+      const symbolMappings = manualMappings.filter((m) => m.symbol === symbol);
+      const buyAllocatedMap = {};
+      symbolMappings.forEach((m) => {
+        buyAllocatedMap[m.buyId] = (buyAllocatedMap[m.buyId] || 0) + m.qty;
+      });
+      const hasOpenBuy = stockEntries.some(
+        (e) =>
+          e.symbol === symbol &&
+          toAction(e.action) === 'buy' &&
+          toNumber(e.quantity) - (buyAllocatedMap[e.id] || 0) > 0
+      );
+      if (!hasOpenBuy) return false;
+    }
+    return true;
+  });
 
   return (
     <section className="panel">
@@ -946,293 +1110,357 @@ function BuySellMappingPage({
         to which purchases.
       </p>
 
-      {symbols.length ? (
-        <div className="mapping-summary-table">
-          {symbols.map((symbol) => {
-            const isExpanded = expandedSymbol === symbol;
-            const symbolBuys = stockEntries.filter(
-              (item) =>
-                item.symbol === symbol && toAction(item.action) === 'buy'
-            );
-            const symbolSells = stockEntries.filter(
-              (item) =>
-                item.symbol === symbol && toAction(item.action) === 'sell'
-            );
-            const mappingsForSymbol = manualMappings.filter(
-              (m) => m.symbol === symbol
-            );
+      {allSymbols.length ? (
+        <>
+          <div className="mapping-filters">
+            <div className="stock-filter-row">
+              <label htmlFor="mapping-symbol-filter">Symbol</label>
+              <CustomSelect
+                id="mapping-symbol-filter"
+                value={symbolFilter}
+                onChange={(e) => setSymbolFilter(e.target.value)}
+              >
+                <option value="ALL">All Symbols</option>
+                {allSymbols.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </CustomSelect>
+            </div>
+            <label className="mapping-toggle-label">
+              <input
+                type="checkbox"
+                checked={showOpenOnly}
+                onChange={(e) => setShowOpenOnly(e.target.checked)}
+              />
+              Open stocks only
+            </label>
+          </div>
 
-            // Calculate allocated quantities and total P/L
-            const buyAllocated = {}; // Map of buyId -> allocated qty
-            const sellAllocated = {}; // Map of sellId -> allocated qty
-            let totalLinkedPL = 0;
+          <div className="mapping-summary-table">
+            {symbols.length ? (
+              symbols.map((symbol) => {
+                const isExpanded = expandedSymbol === symbol;
+                const symbolBuys = stockEntries.filter(
+                  (item) =>
+                    item.symbol === symbol && toAction(item.action) === 'buy'
+                );
+                const symbolSells = stockEntries.filter(
+                  (item) =>
+                    item.symbol === symbol && toAction(item.action) === 'sell'
+                );
+                const mappingsForSymbol = manualMappings.filter(
+                  (m) => m.symbol === symbol
+                );
 
-            mappingsForSymbol.forEach((link) => {
-              buyAllocated[link.buyId] =
-                (buyAllocated[link.buyId] || 0) + link.qty;
-              sellAllocated[link.sellId] =
-                (sellAllocated[link.sellId] || 0) + link.qty;
+                // Calculate allocated quantities and total P/L
+                const buyAllocated = {}; // Map of buyId -> allocated qty
+                const sellAllocated = {}; // Map of sellId -> allocated qty
+                let totalLinkedPL = 0;
 
-              const buyTx = stockEntries.find((s) => s.id === link.buyId);
-              const sellTx = stockEntries.find((s) => s.id === link.sellId);
+                mappingsForSymbol.forEach((link) => {
+                  buyAllocated[link.buyId] =
+                    (buyAllocated[link.buyId] || 0) + link.qty;
+                  sellAllocated[link.sellId] =
+                    (sellAllocated[link.sellId] || 0) + link.qty;
 
-              if (buyTx && sellTx) {
-                const buyCost =
-                  link.qty * buyTx.price +
-                  (buyTx.charges * link.qty) / buyTx.quantity;
-                const sellValue =
-                  link.qty * sellTx.price -
-                  (sellTx.charges * link.qty) / sellTx.quantity;
-                totalLinkedPL += sellValue - buyCost;
-              }
-            });
+                  const buyTx = stockEntries.find((s) => s.id === link.buyId);
+                  const sellTx = stockEntries.find((s) => s.id === link.sellId);
 
-            // Filter unlinked transactions (those with remaining qty after allocations)
-            const unlinkedBuys = symbolBuys.filter((b) => {
-              const allocated = buyAllocated[b.id] || 0;
-              return allocated < b.quantity;
-            });
-            const unlinkedSells = symbolSells.filter((s) => {
-              const allocated = sellAllocated[s.id] || 0;
-              return allocated < s.quantity;
-            });
+                  if (buyTx && sellTx) {
+                    const buyCost =
+                      link.qty * buyTx.price +
+                      (buyTx.charges * link.qty) / buyTx.quantity;
+                    const sellValue =
+                      link.qty * sellTx.price -
+                      (sellTx.charges * link.qty) / sellTx.quantity;
+                    totalLinkedPL += sellValue - buyCost;
+                  }
+                });
 
-            // Calculate average buy price for open stock
-            let totalUnlinkedBuyQty = 0;
-            let totalUnlinkedBuyValue = 0;
+                // Filter unlinked transactions (those with remaining qty after allocations)
+                const unlinkedBuys = symbolBuys.filter((b) => {
+                  const allocated = buyAllocated[b.id] || 0;
+                  return allocated < b.quantity;
+                });
+                const unlinkedSells = symbolSells.filter((s) => {
+                  const allocated = sellAllocated[s.id] || 0;
+                  return allocated < s.quantity;
+                });
 
-            unlinkedBuys.forEach((buy) => {
-              const allocated = buyAllocated[buy.id] || 0;
-              const remaining = buy.quantity - allocated;
-              totalUnlinkedBuyQty += remaining;
-              totalUnlinkedBuyValue +=
-                remaining * buy.price +
-                (buy.charges * remaining) / buy.quantity;
-            });
+                // Calculate average buy price for open stock
+                let totalUnlinkedBuyQty = 0;
+                let totalUnlinkedBuyValue = 0;
 
-            const avgOpenBuyPrice =
-              totalUnlinkedBuyQty > 0
-                ? totalUnlinkedBuyValue / totalUnlinkedBuyQty
-                : 0;
+                unlinkedBuys.forEach((buy) => {
+                  const allocated = buyAllocated[buy.id] || 0;
+                  const remaining = buy.quantity - allocated;
+                  totalUnlinkedBuyQty += remaining;
+                  totalUnlinkedBuyValue +=
+                    remaining * buy.price +
+                    (buy.charges * remaining) / buy.quantity;
+                });
 
-            return (
-              <div key={symbol} className="mapping-card">
-                <div
-                  className="mapping-header"
-                  onClick={() => setExpandedSymbol(isExpanded ? null : symbol)}
-                >
-                  <div className="mapping-header-main">
-                    <strong className="symbol-label">{symbol}</strong>
-                  </div>
-                  <div className="mapping-header-end">
-                    {totalUnlinkedBuyQty > 0 && (
-                      <span>
-                        {totalUnlinkedBuyQty} *{' '}
-                        {currencyFormatter(avgOpenBuyPrice)}
-                      </span>
-                    )}
-                    <strong
-                      className={totalLinkedPL >= 0 ? 'cell-good' : 'cell-bad'}
+                const avgOpenBuyPrice =
+                  totalUnlinkedBuyQty > 0
+                    ? totalUnlinkedBuyValue / totalUnlinkedBuyQty
+                    : 0;
+
+                return (
+                  <div key={symbol} className="mapping-card">
+                    <div
+                      className="mapping-header"
+                      onClick={() =>
+                        setExpandedSymbol(isExpanded ? null : symbol)
+                      }
                     >
-                      {currencyFormatter(totalLinkedPL)}
-                    </strong>
-                    <span className="expand-icon">
-                      {isExpanded ? '−' : '+'}
-                    </span>
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="mapping-details">
-                    <div className="mapping-transactions">
-                      <h4>Unlinked Buy Transactions ({unlinkedBuys.length})</h4>
-                      {unlinkedBuys.length > 0 ? (
-                        <ul className="tx-list">
-                          {unlinkedBuys.map((buy) => {
-                            const allocated = buyAllocated[buy.id] || 0;
-                            const remaining = buy.quantity - allocated;
-                            return (
-                              <li
-                                key={buy.id}
-                                className={`tx-item ${selectedBuyId === buy.id ? 'selected' : ''
-                                  }`}
-                                onClick={() => setSelectedBuyId(buy.id)}
-                              >
-                                <div>
-                                  <span className="tx-qty">
-                                    Qty: {remaining} / {buy.quantity}
-                                  </span>
-                                  <span className="tx-price">
-                                    {currencyFormatter(buy.price)}
-                                  </span>
-                                  <span className="tx-date">
-                                    {formatDateFn(buy.date)}
-                                  </span>
-                                </div>
-                                <div className="tx-value">
-                                  {currencyFormatter(
-                                    remaining * buy.price +
-                                    (buy.charges * remaining) / buy.quantity
-                                  )}
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : (
-                        <p className="no-transactions">
-                          All buy transactions are fully linked.
-                        </p>
-                      )}
-
-                      <h4>
-                        Unlinked Sell Transactions ({unlinkedSells.length})
-                      </h4>
-                      {unlinkedSells.length > 0 ? (
-                        <ul className="tx-list">
-                          {unlinkedSells.map((sell) => {
-                            const allocated = sellAllocated[sell.id] || 0;
-                            const remaining = sell.quantity - allocated;
-                            return (
-                              <li
-                                key={sell.id}
-                                className={`tx-item ${selectedSellId === sell.id ? 'selected' : ''
-                                  }`}
-                                onClick={() => setSelectedSellId(sell.id)}
-                              >
-                                <div>
-                                  <span className="tx-qty">
-                                    Qty: {remaining} / {sell.quantity}
-                                  </span>
-                                  <span className="tx-price">
-                                    {currencyFormatter(sell.price)}
-                                  </span>
-                                  <span className="tx-date">
-                                    {formatDateFn(sell.date)}
-                                  </span>
-                                </div>
-                                <div className="tx-value">
-                                  {currencyFormatter(
-                                    remaining * sell.price -
-                                    (sell.charges * remaining) / sell.quantity
-                                  )}
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : (
-                        <p className="no-transactions">
-                          All sell transactions are fully linked.
-                        </p>
-                      )}
+                      <div className="mapping-header-main">
+                        <strong className="symbol-label">{symbol}</strong>
+                      </div>
+                      <div className="mapping-header-end">
+                        {totalUnlinkedBuyQty > 0 && (
+                          <span>
+                            {totalUnlinkedBuyQty} *{' '}
+                            {currencyFormatter(avgOpenBuyPrice)}
+                          </span>
+                        )}
+                        <strong
+                          className={
+                            totalLinkedPL >= 0 ? 'cell-good' : 'cell-bad'
+                          }
+                        >
+                          {currencyFormatter(totalLinkedPL)}
+                        </strong>
+                        <span className="expand-icon">
+                          {isExpanded ? '−' : '+'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="mapping-control">
-                      {selectedBuyId &&
-                        selectedSellId &&
-                        (() => {
-                          const buyTx = stockEntries.find(
-                            (s) => s.id === selectedBuyId
-                          );
-                          const sellTx = stockEntries.find(
-                            (s) => s.id === selectedSellId
-                          );
-                          if (!buyTx || !sellTx) return null;
+                    {isExpanded && (
+                      <div className="mapping-details">
+                        <div className="mapping-transactions">
+                          <h4>
+                            Unlinked Buy Transactions ({unlinkedBuys.length})
+                          </h4>
+                          {unlinkedBuys.length > 0 ? (
+                            <ul className="tx-list">
+                              {unlinkedBuys.map((buy) => {
+                                const allocated = buyAllocated[buy.id] || 0;
+                                const remaining = buy.quantity - allocated;
+                                return (
+                                  <li
+                                    key={buy.id}
+                                    className={`tx-item ${
+                                      selectedBuyId === buy.id ? 'selected' : ''
+                                    }`}
+                                    onClick={() => setSelectedBuyId(buy.id)}
+                                  >
+                                    <div>
+                                      <span className="tx-qty">
+                                        Qty: {remaining} / {buy.quantity}
+                                      </span>
+                                      <span className="tx-price">
+                                        {currencyFormatter(buy.price)}
+                                      </span>
+                                      <span className="tx-date">
+                                        {formatDateFn(buy.date)}
+                                      </span>
+                                    </div>
+                                    <div className="tx-value">
+                                      {currencyFormatter(
+                                        remaining * buy.price +
+                                          (buy.charges * remaining) /
+                                            buy.quantity
+                                      )}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : (
+                            <p className="no-transactions">
+                              All buy transactions are fully linked.
+                            </p>
+                          )}
 
-                          const buyAllocatedQty = buyAllocated[buyTx.id] || 0;
-                          const sellAllocatedQty =
-                            sellAllocated[sellTx.id] || 0;
-                          const buyRemaining = buyTx.quantity - buyAllocatedQty;
-                          const sellRemaining =
-                            sellTx.quantity - sellAllocatedQty;
-                          const linkQty = Math.min(buyRemaining, sellRemaining);
+                          <h4>
+                            Unlinked Sell Transactions ({unlinkedSells.length})
+                          </h4>
+                          {unlinkedSells.length > 0 ? (
+                            <ul className="tx-list">
+                              {unlinkedSells.map((sell) => {
+                                const allocated = sellAllocated[sell.id] || 0;
+                                const remaining = sell.quantity - allocated;
+                                return (
+                                  <li
+                                    key={sell.id}
+                                    className={`tx-item ${
+                                      selectedSellId === sell.id
+                                        ? 'selected'
+                                        : ''
+                                    }`}
+                                    onClick={() => setSelectedSellId(sell.id)}
+                                  >
+                                    <div>
+                                      <span className="tx-qty">
+                                        Qty: {remaining} / {sell.quantity}
+                                      </span>
+                                      <span className="tx-price">
+                                        {currencyFormatter(sell.price)}
+                                      </span>
+                                      <span className="tx-date">
+                                        {formatDateFn(sell.date)}
+                                      </span>
+                                    </div>
+                                    <div className="tx-value">
+                                      {currencyFormatter(
+                                        remaining * sell.price -
+                                          (sell.charges * remaining) /
+                                            sell.quantity
+                                      )}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : (
+                            <p className="no-transactions">
+                              All sell transactions are fully linked.
+                            </p>
+                          )}
+                        </div>
 
-                          return (
-                            <div className="control-group">
-                              <button onClick={handleAddLink} disabled={false}>
-                                Create Link ({linkQty} qty)
-                              </button>
-                            </div>
-                          );
-                        })()}
-
-                      <div className="existing-links">
-                        <h4>Manual Links ({mappingsForSymbol.length})</h4>
-                        {mappingsForSymbol.length > 0 ? (
-                          <ul className="links-list">
-                            {mappingsForSymbol.map((link, idx) => {
+                        <div className="mapping-control">
+                          {selectedBuyId &&
+                            selectedSellId &&
+                            (() => {
                               const buyTx = stockEntries.find(
-                                (s) => s.id === link.buyId
+                                (s) => s.id === selectedBuyId
                               );
                               const sellTx = stockEntries.find(
-                                (s) => s.id === link.sellId
+                                (s) => s.id === selectedSellId
                               );
-                              const buyCost =
-                                link.qty * buyTx.price +
-                                (buyTx.charges * link.qty) / buyTx.quantity;
-                              const sellValue =
-                                link.qty * sellTx.price -
-                                (sellTx.charges * link.qty) / sellTx.quantity;
-                              const linkPL = sellValue - buyCost;
+                              if (!buyTx || !sellTx) return null;
+
+                              const buyAllocatedQty =
+                                buyAllocated[buyTx.id] || 0;
+                              const sellAllocatedQty =
+                                sellAllocated[sellTx.id] || 0;
+                              const buyRemaining =
+                                buyTx.quantity - buyAllocatedQty;
+                              const sellRemaining =
+                                sellTx.quantity - sellAllocatedQty;
+                              const linkQty = Math.min(
+                                buyRemaining,
+                                sellRemaining
+                              );
 
                               return (
-                                <li key={idx} className="link-item">
-                                  <div className="link-details-wrapper">
-                                    <div className="link-info">
-                                      <span className="link-detail">
-                                        {link.qty} @{' '}
-                                        {currencyFormatter(buyTx?.price || 0)} →{' '}
-                                        {currencyFormatter(sellTx?.price || 0)}
-                                      </span>
-                                      <span
-                                        className={`link-pl ${linkPL >= 0 ? 'cell-good' : 'cell-bad'
-                                          }`}
-                                      >
-                                        {currencyFormatter(linkPL)}
-                                      </span>
-                                    </div>
-                                    <div className="link-dates">
-                                      <span className="link-date">
-                                        Buy: {formatDateFn(buyTx?.date)}
-                                      </span>
-                                      <span className="link-date">
-                                        Sell: {formatDateFn(sellTx?.date)}
-                                      </span>
-                                    </div>
-                                  </div>
+                                <div className="control-group">
                                   <button
-                                    className="remove-link-btn"
-                                    onClick={() =>
-                                      onRemoveMapping(link.buyId, link.sellId)
-                                    }
+                                    onClick={handleAddLink}
+                                    disabled={false}
                                   >
-                                    Remove
+                                    Create Link ({linkQty} qty)
                                   </button>
-                                </li>
+                                </div>
                               );
-                            })}
-                          </ul>
-                        ) : (
-                          <p className="no-links">No manual links yet.</p>
-                        )}
-                      </div>
+                            })()}
 
-                      {mappingsForSymbol.length > 0 && (
-                        <button
-                          className="reset-btn"
-                          onClick={() => onResetSymbol(symbol)}
-                        >
-                          Clear All Links
-                        </button>
-                      )}
-                    </div>
+                          <div className="existing-links">
+                            <h4>Manual Links ({mappingsForSymbol.length})</h4>
+                            {mappingsForSymbol.length > 0 ? (
+                              <ul className="links-list">
+                                {mappingsForSymbol.map((link, idx) => {
+                                  const buyTx = stockEntries.find(
+                                    (s) => s.id === link.buyId
+                                  );
+                                  const sellTx = stockEntries.find(
+                                    (s) => s.id === link.sellId
+                                  );
+                                  const buyCost =
+                                    link.qty * buyTx.price +
+                                    (buyTx.charges * link.qty) / buyTx.quantity;
+                                  const sellValue =
+                                    link.qty * sellTx.price -
+                                    (sellTx.charges * link.qty) /
+                                      sellTx.quantity;
+                                  const linkPL = sellValue - buyCost;
+
+                                  return (
+                                    <li key={idx} className="link-item">
+                                      <div className="link-details-wrapper">
+                                        <div className="link-info">
+                                          <span className="link-detail">
+                                            {link.qty} @{' '}
+                                            {currencyFormatter(
+                                              buyTx?.price || 0
+                                            )}{' '}
+                                            →{' '}
+                                            {currencyFormatter(
+                                              sellTx?.price || 0
+                                            )}
+                                          </span>
+                                          <span
+                                            className={`link-pl ${
+                                              linkPL >= 0
+                                                ? 'cell-good'
+                                                : 'cell-bad'
+                                            }`}
+                                          >
+                                            {currencyFormatter(linkPL)}
+                                          </span>
+                                        </div>
+                                        <div className="link-dates">
+                                          <span className="link-date">
+                                            Buy: {formatDateFn(buyTx?.date)}
+                                          </span>
+                                          <span className="link-date">
+                                            Sell: {formatDateFn(sellTx?.date)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <button
+                                        className="remove-link-btn"
+                                        onClick={() =>
+                                          onRemoveMapping(
+                                            link.buyId,
+                                            link.sellId
+                                          )
+                                        }
+                                      >
+                                        Remove
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            ) : (
+                              <p className="no-links">No manual links yet.</p>
+                            )}
+                          </div>
+
+                          {mappingsForSymbol.length > 0 && (
+                            <button
+                              className="reset-btn"
+                              onClick={() => onResetSymbol(symbol)}
+                            >
+                              Clear All Links
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })
+            ) : (
+              <p className="empty">No symbols match the current filter.</p>
+            )}
+          </div>
+        </>
       ) : (
         <p className="empty">
           No trades yet. Add buy and sell entries to start mapping.
@@ -1279,80 +1507,50 @@ function DailyPLPage({
   currency: currencyFormatter,
   formatDate: formatDateFn,
 }) {
-  const today = new Date();
-  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-  const defaultEndDate = getDateKey(today) || '';
-  const defaultStartDate = getDateKey(currentMonthStart) || defaultEndDate;
-
-  const [startDate, setStartDate] = useState(defaultStartDate);
-  const [endDate, setEndDate] = useState(defaultEndDate);
-
-  const filteredData = dailyPLData.filter((item) => {
-    const itemDate = new Date(item.date).getTime();
-    const startTime = new Date(startDate).getTime();
-    const endTime = new Date(endDate).getTime();
-    return itemDate >= startTime && itemDate <= endTime;
-  });
-
-  const stats = filteredData.length > 0 ? {
-    totalDays: filteredData.length,
-    avgDailyPL: filteredData.reduce((sum, item) => sum + item.pnl, 0) / filteredData.length,
-    bestDay: Math.max(...filteredData.map((item) => item.pnl)),
-    worstDay: Math.min(...filteredData.map((item) => item.pnl)),
-  } : null;
+  const last15DaysData = dailyPLData.slice(0, 15);
 
   return (
     <section className="panel">
       <h2>Day Wise Profit / Loss</h2>
       <p className="chart-summary">
-        P/L breakdown for each day trades were closed. Includes realized trade P/L and allocated DP charges.
+        P/L breakdown for the most recent 15 trading days using exact
+        FIFO-matched realized trade P/L.
       </p>
 
-      <div className="filter-row" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <label style={{ marginRight: '0.5rem' }}>From:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{ padding: '0.5rem' }}
-          />
-        </div>
-        <div>
-          <label style={{ marginRight: '0.5rem' }}>To:</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{ padding: '0.5rem' }}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setStartDate(defaultStartDate);
-            setEndDate(defaultEndDate);
-          }}
-          style={{ padding: '0.5rem 1rem' }}
-        >
-          Reset
-        </button>
-      </div>
-
-      {filteredData.length > 0 ? (
+      {last15DaysData.length > 0 ? (
         <div className="pnl-table" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
-                <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold' }}>P/L</th>
+                <th
+                  style={{
+                    padding: '0.75rem',
+                    textAlign: 'left',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  Date
+                </th>
+                <th
+                  style={{
+                    padding: '0.75rem',
+                    textAlign: 'right',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  P/L
+                </th>
               </tr>
             </thead>
             <tbody>
-              {[...filteredData].reverse().map((item) => (
-                <tr key={item.date} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem' }}>{formatDateFn(item.date)}</td>
+              {last15DaysData.map((item) => (
+                <tr
+                  key={item.date}
+                  style={{ borderBottom: '1px solid #f1f5f9' }}
+                >
+                  <td style={{ padding: '0.75rem' }}>
+                    {formatDateFn(item.date)}
+                  </td>
                   <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                     <span className={item.pnl >= 0 ? 'cell-good' : 'cell-bad'}>
                       {currencyFormatter(item.pnl)}
@@ -1364,7 +1562,7 @@ function DailyPLPage({
           </table>
         </div>
       ) : (
-        <p className="empty">No trades in the selected date range.</p>
+        <p className="empty">No trade data available for the last 15 days.</p>
       )}
     </section>
   );
@@ -1555,6 +1753,20 @@ export default function App() {
     };
 
     const stockPositions = {};
+    const dailyRealizedMap = {};
+
+    const ensureDailyBucket = (dateKey) => {
+      if (!dateKey) return null;
+      if (!dailyRealizedMap[dateKey]) {
+        dailyRealizedMap[dateKey] = {
+          date: dateKey,
+          pnl: 0,
+          tradeCount: 0,
+          symbols: new Set(),
+        };
+      }
+      return dailyRealizedMap[dateKey];
+    };
 
     Object.entries(stocksBySymbol).forEach(([symbol, symbolItems]) => {
       const dayGroups = symbolItems.reduce((map, item) => {
@@ -1615,6 +1827,14 @@ export default function App() {
             0
           );
 
+          if (daySellItems.length > 0) {
+            const dayBucket = ensureDailyBucket(dateKey);
+            if (dayBucket) {
+              dayBucket.tradeCount += daySellItems.length;
+              dayBucket.symbols.add(symbol);
+            }
+          }
+
           const intradayQty = Math.min(dayBuyQty, daySellQty);
           const intradayBuyGrossValue =
             dayBuyQty > 0 ? (dayBuyGrossValue * intradayQty) / dayBuyQty : 0;
@@ -1637,11 +1857,17 @@ export default function App() {
               intradaySellGrossValue - intradaySellCharges;
 
             const monthBucket = ensureMonthBucket(dateKey.slice(0, 7));
+            const realizedPnl =
+              intradaySellGrossValue -
+              intradaySellCharges -
+              (intradayBuyGrossValue + intradayBuyCharges);
             if (monthBucket) {
-              monthBucket.realizedPnlBeforeDp +=
-                intradaySellGrossValue -
-                intradaySellCharges -
-                (intradayBuyGrossValue + intradayBuyCharges);
+              monthBucket.realizedPnlBeforeDp += realizedPnl;
+            }
+
+            const dayBucket = ensureDailyBucket(dateKey);
+            if (dayBucket) {
+              dayBucket.pnl += realizedPnl;
             }
           }
 
@@ -1653,6 +1879,7 @@ export default function App() {
               qty: remainingBuyQty,
               grossValue: dayBuyGrossValue - intradayBuyGrossValue,
               charges: dayBuyCharges - intradayBuyCharges,
+              dateKey,
             });
           }
 
@@ -1686,11 +1913,17 @@ export default function App() {
                 matchedSellGrossValue - matchedSellCharges;
 
               const monthBucket = ensureMonthBucket(dateKey.slice(0, 7));
+              const realizedPnl =
+                matchedSellGrossValue -
+                matchedSellCharges -
+                (matchedBuyGrossValue + matchedBuyCharges);
               if (monthBucket) {
-                monthBucket.realizedPnlBeforeDp +=
-                  matchedSellGrossValue -
-                  matchedSellCharges -
-                  (matchedBuyGrossValue + matchedBuyCharges);
+                monthBucket.realizedPnlBeforeDp += realizedPnl;
+              }
+
+              const dayBucket = ensureDailyBucket(dateKey);
+              if (dayBucket) {
+                dayBucket.pnl += realizedPnl;
               }
 
               lot.qty -= matchedQty;
@@ -1759,6 +1992,14 @@ export default function App() {
       );
 
     const pnlAfterDpCharges = closedTradeDiff - totalDpCharges;
+    const totalProfit = Object.values(symbolProfitLoss).reduce((sum, item) => {
+      const symbolDiff = item.matchedSellValue - item.matchedBuyValue;
+      return symbolDiff > 0 ? sum + symbolDiff : sum;
+    }, 0);
+    const totalLoss = Object.values(symbolProfitLoss).reduce((sum, item) => {
+      const symbolDiff = item.matchedSellValue - item.matchedBuyValue;
+      return symbolDiff < 0 ? sum + Math.abs(symbolDiff) : sum;
+    }, 0);
 
     const symbolProfitLossRows = Object.values(symbolProfitLoss)
       .map((item) => {
@@ -1779,7 +2020,7 @@ export default function App() {
         };
       })
       .filter((item) => item.quantity > 0)
-      .sort((a, b) => a.symbol.localeCompare(b.symbol));
+      .sort((a, b) => b.difference - a.difference);
 
     const { totalBought, totalSold, totalCharges, tradeCashFlow } =
       stockCashSummary;
@@ -1798,7 +2039,18 @@ export default function App() {
           (sum, lot) => sum + lot.grossValue + lot.charges,
           0
         );
-        return { symbol: item.symbol, quantity, invested };
+        const openLots = item.lots.filter((lot) => lot.qty > 0);
+        const oldestBuyDate =
+          openLots.length > 0
+            ? openLots.reduce(
+                (earliest, lot) =>
+                  !earliest || (lot.dateKey && lot.dateKey < earliest)
+                    ? lot.dateKey
+                    : earliest,
+                null
+              )
+            : null;
+        return { symbol: item.symbol, quantity, invested, oldestBuyDate };
       })
       .filter((item) => item.quantity > 0 && item.invested > 0)
       .sort((a, b) => b.invested - a.invested);
@@ -1821,6 +2073,7 @@ export default function App() {
         color: palette[index % palette.length],
         quantity: item.quantity,
         avgPrice: item.quantity > 0 ? item.invested / item.quantity : 0,
+        oldestBuyDate: item.oldestBuyDate,
       })),
       {
         label: 'Remaining Cash',
@@ -1862,50 +2115,14 @@ export default function App() {
 
     const finalAmount = cashDeposited + pnlAfterDpCharges;
 
-    // Calculate daily P/L data
-    const dailyPLMap = {};
-    stockEntries.forEach((item) => {
-      if (toAction(item.action) === 'sell') {
-        const dateKey = getDateKey(item.date);
-        if (!dateKey) return;
-        if (!dailyPLMap[dateKey]) {
-          dailyPLMap[dateKey] = {
-            date: dateKey,
-            tradeCount: 0,
-            symbols: new Set(),
-            realizedValue: 0,
-            volume: 0,
-          };
-        }
-        dailyPLMap[dateKey].tradeCount += 1;
-        dailyPLMap[dateKey].symbols.add(item.symbol);
-        const qty = toNumber(item.quantity);
-        const price = toNumber(item.price);
-        dailyPLMap[dateKey].realizedValue += qty * price;
-        dailyPLMap[dateKey].volume += qty;
-      }
-    });
-
-    // Calculate proportional P/L for each day
-    const dailyPLData = Object.values(dailyPLMap).map((day) => {
-      const dayProportion = realizedSummary.matchedSellGrossValue > 0
-        ? day.realizedValue / realizedSummary.matchedSellGrossValue
-        : 0;
-      const dpChargeAllocation = dayProportion * totalDpCharges;
-      const estimatedDayPnl = dayProportion * closedTradeDiffWithoutCharges - dpChargeAllocation;
-
-      const gainPercent = day.realizedValue > 0
-        ? (estimatedDayPnl / day.realizedValue) * 100
-        : 0;
-
-      return {
+    const dailyPLData = Object.values(dailyRealizedMap)
+      .map((day) => ({
         date: day.date,
-        pnl: estimatedDayPnl,
+        pnl: day.pnl,
         tradeCount: day.tradeCount,
         symbols: Array.from(day.symbols).sort(),
-        gainPercent,
-      };
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return {
       remainingCash: finalAmount,
@@ -1920,6 +2137,8 @@ export default function App() {
       liquidCash,
       totalFundAdded,
       totalFundWithdrawn,
+      totalProfit,
+      totalLoss,
       totalBought,
       totalSold,
       totalCharges,
@@ -1936,6 +2155,99 @@ export default function App() {
       allocationTotal,
     };
   }, [cashEntries, stockEntries, dpChargeEntries]);
+
+  const openStockAges = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const ages = {};
+
+    totals.allocationLegend.forEach((item) => {
+      if (item.quantity === null) return; // skip "Remaining Cash"
+      const symbol = item.label;
+
+      const symbolMappings = manualMappings.filter((m) => m.symbol === symbol);
+
+      if (symbolMappings.length > 0) {
+        // Use manual mappings: find oldest unlinked buy transaction
+        const buyAllocated = {};
+        symbolMappings.forEach((m) => {
+          buyAllocated[m.buyId] = (buyAllocated[m.buyId] || 0) + m.qty;
+        });
+
+        const openBuyDates = stockEntries
+          .filter(
+            (entry) =>
+              entry.symbol === symbol &&
+              toAction(entry.action) === 'buy' &&
+              toNumber(entry.quantity) - (buyAllocated[entry.id] || 0) > 0
+          )
+          .map((entry) => toDate(entry.date))
+          .filter(Boolean);
+
+        if (openBuyDates.length > 0) {
+          const earliestDate = openBuyDates.reduce((a, b) => (a < b ? a : b));
+          earliestDate.setHours(0, 0, 0, 0);
+          const diffMs = today - earliestDate;
+          ages[symbol] = Math.max(
+            0,
+            Math.floor(diffMs / (1000 * 60 * 60 * 24))
+          );
+        }
+      } else if (item.oldestBuyDate) {
+        // Fallback: FIFO-based oldest open lot date
+        const earliestDate = toDate(item.oldestBuyDate);
+        if (earliestDate) {
+          earliestDate.setHours(0, 0, 0, 0);
+          const diffMs = today - earliestDate;
+          ages[symbol] = Math.max(
+            0,
+            Math.floor(diffMs / (1000 * 60 * 60 * 24))
+          );
+        }
+      }
+    });
+
+    return ages;
+  }, [totals.allocationLegend, stockEntries, manualMappings]);
+
+  const mappingOpenAvgPrices = useMemo(() => {
+    const avgBySymbol = {};
+    const symbols = [
+      ...new Set(manualMappings.map((m) => m.symbol).filter(Boolean)),
+    ];
+
+    symbols.forEach((symbol) => {
+      const symbolMappings = manualMappings.filter((m) => m.symbol === symbol);
+      if (!symbolMappings.length) return;
+
+      const buyAllocated = {};
+      symbolMappings.forEach((m) => {
+        buyAllocated[m.buyId] = (buyAllocated[m.buyId] || 0) + toNumber(m.qty);
+      });
+
+      let totalRemainingQty = 0;
+      let totalRemainingCost = 0;
+
+      stockEntries.forEach((entry) => {
+        if (entry.symbol !== symbol || toAction(entry.action) !== 'buy') return;
+        const allocated = buyAllocated[entry.id] || 0;
+        const qty = toNumber(entry.quantity);
+        const remainingQty = qty - allocated;
+        if (remainingQty <= 0 || qty <= 0) return;
+
+        totalRemainingQty += remainingQty;
+        totalRemainingCost +=
+          remainingQty * toNumber(entry.price) +
+          (toNumber(entry.charges) * remainingQty) / qty;
+      });
+
+      if (totalRemainingQty > 0) {
+        avgBySymbol[symbol] = totalRemainingCost / totalRemainingQty;
+      }
+    });
+
+    return avgBySymbol;
+  }, [stockEntries, manualMappings]);
 
   const addCashEntry = (event) => {
     event.preventDefault();
@@ -2148,14 +2460,14 @@ export default function App() {
     const next = stockEntries.map((item) =>
       item.id === id
         ? {
-          ...item,
-          action,
-          symbol,
-          quantity,
-          price,
-          charges,
-          date: editStockForm.date || new Date().toISOString().slice(0, 10),
-        }
+            ...item,
+            action,
+            symbol,
+            quantity,
+            price,
+            charges,
+            date: editStockForm.date || new Date().toISOString().slice(0, 10),
+          }
         : item
     );
 
@@ -2200,11 +2512,11 @@ export default function App() {
       );
       const nextDpChargeEntries = Array.isArray(parsed.dpChargeEntries)
         ? parsed.dpChargeEntries.map((item) => ({
-          id: item?.id ? String(item.id) : crypto.randomUUID(),
-          amount: Math.abs(toNumber(item?.amount)),
-          note: String(item?.note || ''),
-          date: item?.date || new Date().toISOString().slice(0, 10),
-        }))
+            id: item?.id ? String(item.id) : crypto.randomUUID(),
+            amount: Math.abs(toNumber(item?.amount)),
+            note: String(item?.note || ''),
+            date: item?.date || new Date().toISOString().slice(0, 10),
+          }))
         : [];
       const nextSymbolSuggestions = Array.isArray(parsed.symbolSuggestions)
         ? normalizeSymbols(parsed.symbolSuggestions)
@@ -2224,7 +2536,8 @@ export default function App() {
       setYamlStatus('YAML data imported successfully.');
     } catch (error) {
       setYamlStatus(
-        `Import failed: ${error instanceof Error ? error.message : 'Invalid YAML data.'
+        `Import failed: ${
+          error instanceof Error ? error.message : 'Invalid YAML data.'
         }`
       );
     }
@@ -2233,18 +2546,37 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="hero">
-        <h1>Stock Valley</h1>
+        <div className="hero-top">
+          <h1>
+            <Link className="hero-title-link" to="/">
+              <span className="hero-title-icon" aria-hidden="true">
+                <img
+                  className="hero-title-icon-img"
+                  src="/apple-touch-icon.svg"
+                  alt=""
+                />
+              </span>
+              Stock Valley
+            </Link>
+          </h1>
+          <AppNav inHero />
+        </div>
         <p>
           Track deposits, withdrawals, and each stock position in one place.
         </p>
       </header>
 
-      <AppNav />
-
       <Routes>
         <Route
           path="/"
-          element={<DashboardPage totals={totals} currency={currency} />}
+          element={
+            <DashboardPage
+              totals={totals}
+              currency={currency}
+              openStockAges={openStockAges}
+              mappingOpenAvgPrices={mappingOpenAvgPrices}
+            />
+          }
         />
         <Route
           path="/money"
