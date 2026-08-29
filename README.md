@@ -1,83 +1,69 @@
 # StockValley
 
-StockValley is a React + Vite single-page app for tracking investment cash flows, stock trades, P/L, and lot mapping.
+StockValley is a small React application (built with Vite) for viewing and valuing stocks. It demonstrates a lightweight SPA with local demo data and simple styling.
 
-## What it does
+## Features
 
-- Tracks deposits and withdrawals under Money Movement.
-- Records buy/sell stock trades with quantity, price, charges, and date.
-- Shows a Dashboard with invested amount, total worth, projected balance, and overall P/L.
-- Displays symbol-level P/L summaries and stock allocation.
-- Provides a Stock Map page for assigning sell lots to buy lots with matched P/L.
-- Lets you record DP charges separately.
-- Supports exporting and importing the complete app state as YAML.
-- Includes a GitHub import button that loads `public/data.yaml` from the repository.
+- View sample stock data from `public/data.yaml`.
+- Simple portfolio/value visualization and details view.
+- Fast development experience with Vite + React and hot module replacement.
 
 ## Tech stack
 
-- React 18
+- React
 - Vite
-- React Router DOM
-- js-yaml
-- Plain CSS
-- ESLint
+- Plain CSS (styles.css)
+- ESLint (project template rules)
 
-## Setup
+## Quickstart
 
 Prerequisites: Node.js 18+ and npm (or pnpm/yarn).
 
 Install dependencies:
 
-```bash
+```
 npm install
 ```
 
 Start development server:
 
-```bash
+```
 npm run dev
 ```
 
-Open the app at `http://localhost:5173`.
-
 Build for production:
 
-```bash
+```
 npm run build
 ```
 
-Preview the production build locally:
+Preview production build locally:
 
-```bash
+```
 npm run preview
 ```
 
-## App pages
+## Data
 
-- `/` — Dashboard
-- `/money` — Money Movement
-- `/stocks` — Stock Entries
-- `/stock-map` — Stock Map lot assignment
-- `/dp-charges` — DP Charges
-- `/symbol-pnl` — Symbol P/L
-- `/data-yaml` — YAML import/export
+This repo includes a demo dataset at `public/data.yaml`. The app reads this file at runtime (served statically by Vite) to populate sample stocks and portfolio values.
 
-## Data and persistence
-
-- Data is persisted in browser `localStorage`.
-- Use the Data YAML page to export current state, paste YAML to import, or fetch sample YAML from GitHub.
-- The repository includes `public/data.yaml` as demo data.
-
-## Project structure
+## Project structure (key files)
 
 - `index.html` — app shell
-- `src/main.jsx` — React entry point
-- `src/App.jsx` — main app and page components
-- `src/styles.css` — UI styling
-- `public/data.yaml` — demo YAML dataset
-- `eslint.config.js` — linting configuration
+- `src/main.jsx` — app entry
+- `src/App.jsx` — main app component
+- `src/styles.css` — global styles
+- `public/data.yaml` — demo data
 
-## Notes
+## Development notes
 
-- The app is designed as a lightweight demo and stores data locally in the browser.
-- Add API integration or environment variables using `VITE_` prefixes if you extend the app.
+- The app is intentionally minimal. Add APIs or environment variables (prefix `VITE_`) if you integrate external services.
+- ESLint is configured via the template; update rules in `eslint.config.js` as needed.
+
+## Contributing
+
+Contributions are welcome. Create issues or PRs with feature requests or fixes.
+
+## License
+
+This project is provided as-is. Add a LICENSE file if you need a specific license.
