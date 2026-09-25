@@ -59,7 +59,6 @@ const normalizeStockEntries = (items) =>
           quantity: toNumber(item.quantity),
           price: toNumber(item.price),
           charges: toNumber(item.charges),
-          dpCharges: toNumber(item.dpCharges),
           createdAt: normalizeCreatedAt(item.createdAt),
         };
       }
@@ -73,7 +72,6 @@ const normalizeStockEntries = (items) =>
           quantity: toNumber(item.quantity),
           price: toNumber(item.buyPrice),
           charges: toNumber(item.charges),
-          dpCharges: toNumber(item.dpCharges),
           createdAt: normalizeCreatedAt(item.createdAt),
         };
       }
@@ -2523,9 +2521,7 @@ export default function App() {
         ? normalizeSymbols(parsed.symbolSuggestions)
         : normalizeSymbols(nextStockEntries.map((item) => item.symbol));
 
-      const nextManualMappings = normalizeStockEntries(
-        Array.isArray(parsed.manualMappings) ? parsed.manualMappings : []
-      );;
+      const nextManualMappings = Array.isArray(parsed.manualMappings) ? parsed.manualMappings : [];
 
       setCashEntries(nextCashEntries);
       setStockEntries(nextStockEntries);
