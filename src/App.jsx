@@ -2484,6 +2484,7 @@ export default function App() {
       cashEntries,
       stockEntries,
       dpChargeEntries,
+      manualMappings,
       symbolSuggestions,
     };
 
@@ -2522,16 +2523,22 @@ export default function App() {
         ? normalizeSymbols(parsed.symbolSuggestions)
         : normalizeSymbols(nextStockEntries.map((item) => item.symbol));
 
+      const nextManualMappings = normalizeStockEntries(
+        Array.isArray(parsed.manualMappings) ? parsed.manualMappings : []
+      );;
+
       setCashEntries(nextCashEntries);
       setStockEntries(nextStockEntries);
       setDpChargeEntries(nextDpChargeEntries);
       setSymbolSuggestions(nextSymbolSuggestions);
+      setManualMappings(nextManualMappings)
       setEditingStockId('');
 
       saveStorage(CASH_KEY, nextCashEntries);
       saveStorage(STOCK_KEY, nextStockEntries);
       saveStorage(DP_CHARGES_KEY, nextDpChargeEntries);
       saveStorage(SYMBOL_KEY, nextSymbolSuggestions);
+      saveStorage(MANUAL_MAPPINGS_KEY, nextManualMappings);
 
       setYamlStatus('YAML data imported successfully.');
     } catch (error) {
