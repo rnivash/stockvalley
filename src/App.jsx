@@ -1378,6 +1378,9 @@ function BuySellMappingPage({
                                   const sellTx = stockEntries.find(
                                     (s) => s.id === link.sellId
                                   );
+
+                                  if(!buyTx || !sellTx) return;
+
                                   const buyCost =
                                     link.qty * buyTx.price +
                                     (buyTx.charges * link.qty) / buyTx.quantity;
