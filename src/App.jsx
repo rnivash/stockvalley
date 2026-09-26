@@ -8,13 +8,9 @@ const SYMBOL_KEY = 'stockvalley-symbol-suggestions';
 const DP_CHARGES_KEY = 'stockvalley-dp-charge-entries';
 const MANUAL_MAPPINGS_KEY = 'stockvalley-manual-mappings';
 
-const readStorage = (key) => {
-  return JSON.parse(localStorage.getItem(key));
-};
+const readStorage = (key) => JSON.parse(localStorage.getItem(key));
 
-const saveStorage = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
-};
+const saveStorage = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 
 const toNumber = (value) => Number(value) || 0;
 
@@ -136,13 +132,8 @@ function CustomSelect({ id, value, onChange, children }) {
 
   return (
     <div className={`custom-select${isOpen ? ' open' : ''}`} ref={ref} id={id}>
-      <button
-        type="button"
-        className="custom-select-btn"
-        onClick={() => setIsOpen((p) => !p)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
+      <button type="button" className="custom-select-btn" onClick={() => setIsOpen((p) => !p)} 
+              aria-haspopup="listbox" aria-expanded={isOpen} >
         <span className="custom-select-value">{selectedLabel}</span>
         <span className="custom-select-chevron" aria-hidden="true">
           <svg viewBox="0 0 24 24">
@@ -153,15 +144,13 @@ function CustomSelect({ id, value, onChange, children }) {
       {isOpen && (
         <ul className="custom-select-list" role="listbox">
           {options.map((opt) => (
-            <li
-              key={opt.value}
+            <li key={opt.value} 
               className={`custom-select-item${
                 opt.value === String(value) ? ' selected' : ''
               }`}
               role="option"
               aria-selected={opt.value === String(value)}
-              onMouseDown={() => handleSelect(opt.value)}
-            >
+              onMouseDown={() => handleSelect(opt.value)}>
               {opt.label}
             </li>
           ))}
@@ -171,13 +160,7 @@ function CustomSelect({ id, value, onChange, children }) {
   );
 }
 
-function List({
-  items,
-  renderItem,
-  emptyText,
-  onItemClick,
-  isItemClickable = false,
-}) {
+function List({items, renderItem, emptyText, onItemClick, isItemClickable = false}) {
   if (!items.length) return <p className="empty">{emptyText}</p>;
 
   return (
@@ -229,68 +212,41 @@ function AppNav({ inHero = false }) {
         </button>
       </div>
       {isExpanded && (
-        <nav
-          className="app-nav"
-          onClick={(event) => {
+        <nav className="app-nav" onClick={(event) => {
             const target = event.target;
             if (target instanceof Element && target.closest('a')) {
               setIsExpanded(false);
             }
-          }}
-        >
-          <NavLink
-            to="/money"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          }}>
+          <NavLink to="/money" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Money Movement</span>
             <small className="nav-hint">Add and view entries</small>
           </NavLink>
-          <NavLink
-            to="/stocks"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink  to="/stocks" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Stock Entries</span>
             <small className="nav-hint">Add and view trades</small>
           </NavLink>
-          <NavLink
-            to="/dp-charges"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/dp-charges" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">DP Charges</span>
             <small className="nav-hint">Add delivery charges</small>
           </NavLink>
-          <NavLink
-            to="/symbol-pnl"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/symbol-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Symbol P/L</span>
             <small className="nav-hint">Closed qty averages</small>
           </NavLink>
-          <NavLink
-            to="/monthly-pnl"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/monthly-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Monthly P/L</span>
             <small className="nav-hint">Profit and gain % trend</small>
           </NavLink>
-          <NavLink
-            to="/daily-pnl"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/daily-pnl"className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Daily P/L</span>
             <small className="nav-hint">Day-wise profit breakdown</small>
           </NavLink>
-          <NavLink
-            to="/buy-sell-mapping"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/buy-sell-mapping" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Buy-Sell Mapping</span>
             <small className="nav-hint">Match buys and sells</small>
           </NavLink>
-          <NavLink
-            to="/data-yaml"
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
+          <NavLink to="/data-yaml" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Data YAML</span>
             <small className="nav-hint">Import or export all data</small>
           </NavLink>
@@ -300,12 +256,7 @@ function AppNav({ inHero = false }) {
   );
 }
 
-function DashboardPage({
-  totals,
-  currency: currencyFormatter,
-  openStockAges = {},
-  mappingOpenAvgPrices = {},
-}) {
+function DashboardPage({totals, currency: currencyFormatter, openStockAges = {},mappingOpenAvgPrices = {}}) {
   const netProfit =
     totals.closedTradeDiffWithoutCharges -
     totals.totalCharges -
@@ -2509,124 +2460,50 @@ export default function App() {
       </header>
 
       <Routes>
-        <Route
-          path="/"
-          element={
-            <DashboardPage
-              totals={totals}
-              currency={currency}
-              openStockAges={openStockAges}
-              mappingOpenAvgPrices={mappingOpenAvgPrices}
+        <Route path="/" element={
+            <DashboardPage totals={totals} currency={currency} openStockAges={openStockAges} mappingOpenAvgPrices={mappingOpenAvgPrices}/>
+          }
+        />
+        <Route path="/money" element={
+            <MoneyPage cashForm={cashForm} setCashForm={setCashForm} addCashEntry={addCashEntry} sortedCashEntries={sortedCashEntries}
+              deleteCashEntry={deleteCashEntry} currency={currency} formatDate={formatDate}/>
+          }
+        />
+        <Route path="/dp-charges" element={
+            <DpChargesPage dpChargeForm={dpChargeForm} setDpChargeForm={setDpChargeForm} addDpChargeEntry={addDpChargeEntry}
+              dpChargeEntries={dpChargeEntries} deleteDpChargeEntry={deleteDpChargeEntry} currency={currency} formatDate={formatDate}/>
+          }
+        />
+        <Route path="/stocks" element={
+            <StocksPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
+              setStockFilter={setStockFilter} stockFilterOptions={stockFilterOptions} filteredStockEntries={filteredStockEntries}
+              startStockEdit={startStockEdit} editingStockId={editingStockId} editStockForm={editStockForm} setEditStockForm={setEditStockForm}
+              saveStockEdit={saveStockEdit} cancelStockEdit={cancelStockEdit} toAction={toAction} toNumber={toNumber}
+              deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
             />
           }
         />
-        <Route
-          path="/money"
-          element={
-            <MoneyPage
-              cashForm={cashForm}
-              setCashForm={setCashForm}
-              addCashEntry={addCashEntry}
-              sortedCashEntries={sortedCashEntries}
-              deleteCashEntry={deleteCashEntry}
-              currency={currency}
-              formatDate={formatDate}
-            />
+        <Route path="/symbol-pnl" element={
+            <SymbolPnlPage symbolProfitLossRows={totals.symbolProfitLossRows} currency={currency}/>
           }
         />
-        <Route
-          path="/dp-charges"
-          element={
-            <DpChargesPage
-              dpChargeForm={dpChargeForm}
-              setDpChargeForm={setDpChargeForm}
-              addDpChargeEntry={addDpChargeEntry}
-              dpChargeEntries={dpChargeEntries}
-              deleteDpChargeEntry={deleteDpChargeEntry}
-              currency={currency}
-              formatDate={formatDate}
-            />
+        <Route path="/monthly-pnl" element={
+            <MonthlyPnlPage monthlyPerformanceRows={totals.monthlyPerformanceRows} currency={currency}/>
           }
         />
-        <Route
-          path="/stocks"
-          element={
-            <StocksPage
-              stockForm={stockForm}
-              setStockForm={setStockForm}
-              addStockEntry={addStockEntry}
-              stockFilter={stockFilter}
-              setStockFilter={setStockFilter}
-              stockFilterOptions={stockFilterOptions}
-              filteredStockEntries={filteredStockEntries}
-              startStockEdit={startStockEdit}
-              editingStockId={editingStockId}
-              editStockForm={editStockForm}
-              setEditStockForm={setEditStockForm}
-              saveStockEdit={saveStockEdit}
-              cancelStockEdit={cancelStockEdit}
-              toAction={toAction}
-              toNumber={toNumber}
-              deleteStockEntry={deleteStockEntry}
-              currency={currency}
-              formatDate={formatDate}
-              filteredSymbolSuggestions={filteredSymbolSuggestions}
-            />
+        <Route path="/daily-pnl" element={
+            <DailyPLPage dailyPLData={totals.dailyPLData} currency={currency} formatDate={formatDate} />
           }
         />
-        <Route
-          path="/symbol-pnl"
-          element={
-            <SymbolPnlPage
-              symbolProfitLossRows={totals.symbolProfitLossRows}
-              currency={currency}
-            />
+        <Route path="/buy-sell-mapping" element={
+            <BuySellMappingPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} manualMappings={manualMappings}
+              onAddMapping={addManualMapping} onRemoveMapping={removeManualMapping} onResetSymbol={resetSymbolMappings}
+              currency={currency} formatDate={formatDate} />
           }
         />
-        <Route
-          path="/monthly-pnl"
-          element={
-            <MonthlyPnlPage
-              monthlyPerformanceRows={totals.monthlyPerformanceRows}
-              currency={currency}
-            />
-          }
-        />
-        <Route
-          path="/daily-pnl"
-          element={
-            <DailyPLPage
-              dailyPLData={totals.dailyPLData}
-              currency={currency}
-              formatDate={formatDate}
-            />
-          }
-        />
-        <Route
-          path="/buy-sell-mapping"
-          element={
-            <BuySellMappingPage
-              symbolProfitLoss={totals.symbolProfitLoss}
-              stockEntries={stockEntries}
-              manualMappings={manualMappings}
-              onAddMapping={addManualMapping}
-              onRemoveMapping={removeManualMapping}
-              onResetSymbol={resetSymbolMappings}
-              currency={currency}
-              formatDate={formatDate}
-            />
-          }
-        />
-        <Route
-          path="/data-yaml"
-          element={
-            <DataYamlPage
-              yamlText={yamlText}
-              setYamlText={setYamlText}
-              yamlStatus={yamlStatus}
-              exportAllDataAsYaml={exportAllDataAsYaml}
-              importAllDataFromYaml={importAllDataFromYaml}
-            />
+        <Route path="/data-yaml" element={
+            <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
+              exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
