@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { dump, load } from 'js-yaml';
-import {
-  Link,
-  NavLink,
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-} from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 const CASH_KEY = 'stockvalley-cash-entries';
 const STOCK_KEY = 'stockvalley-stock-entries';
@@ -16,12 +9,7 @@ const DP_CHARGES_KEY = 'stockvalley-dp-charge-entries';
 const MANUAL_MAPPINGS_KEY = 'stockvalley-manual-mappings';
 
 const readStorage = (key) => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return JSON.parse(localStorage.getItem(key));
 };
 
 const saveStorage = (key, value) => {
@@ -45,39 +33,6 @@ const toAction = (value) => {
   const action = String(value || '').toLowerCase();
   return action === 'sell' ? 'sell' : 'buy';
 };
-
-const normalizeStockEntries = (items) =>
-  items
-    .map((item, index) => {
-      if (item?.action && typeof item.price !== 'undefined') {
-        return {
-          ...item,
-          action: toAction(item.action),
-          symbol: String(item.symbol || '')
-            .trim()
-            .toUpperCase(),
-          quantity: toNumber(item.quantity),
-          price: toNumber(item.price),
-          charges: toNumber(item.charges),
-          createdAt: normalizeCreatedAt(item.createdAt),
-        };
-      }
-      if (typeof item?.buyPrice !== 'undefined') {
-        return {
-          ...item,
-          action: 'buy',
-          symbol: String(item.symbol || '')
-            .trim()
-            .toUpperCase(),
-          quantity: toNumber(item.quantity),
-          price: toNumber(item.buyPrice),
-          charges: toNumber(item.charges),
-          createdAt: normalizeCreatedAt(item.createdAt),
-        };
-      }
-      return null;
-    })
-    .filter(Boolean);
 
 const normalizeSymbols = (items) =>
   [
@@ -213,15 +168,6 @@ function CustomSelect({ id, value, onChange, children }) {
         </ul>
       )}
     </div>
-  );
-}
-
-function Card({ label, value, tone = 'normal' }) {
-  return (
-    <article className={`card ${tone}`}>
-      <small>{label}</small>
-      <h3>{value}</h3>
-    </article>
   );
 }
 
@@ -1571,18 +1517,12 @@ function DailyPLPage({
 
 export default function App() {
   const [cashEntries, setCashEntries] = useState(() => readStorage(CASH_KEY));
-  const [stockEntries, setStockEntries] = useState(() =>
-    normalizeStockEntries(readStorage(STOCK_KEY))
-  );
-  const [dpChargeEntries, setDpChargeEntries] = useState(() =>
-    readStorage(DP_CHARGES_KEY)
-  );
+  const [stockEntries, setStockEntries] = useState(() => readStorage(STOCK_KEY));
+  const [dpChargeEntries, setDpChargeEntries] = useState(() => readStorage(DP_CHARGES_KEY));
   const [symbolSuggestions, setSymbolSuggestions] = useState(() => {
     const saved = normalizeSymbols(readStorage(SYMBOL_KEY));
     if (saved.length) return saved;
-    return normalizeSymbols(
-      normalizeStockEntries(readStorage(STOCK_KEY)).map((item) => item.symbol)
-    );
+    return normalizeSymbols(readStorage(STOCK_KEY).map((item) => item.symbol));
   });
 
   const [cashForm, setCashForm] = useState({
@@ -1619,9 +1559,7 @@ export default function App() {
   const [stockFilter, setStockFilter] = useState('ALL');
   const [yamlText, setYamlText] = useState('');
   const [yamlStatus, setYamlStatus] = useState('');
-  const [manualMappings, setManualMappings] = useState(() =>
-    readStorage(MANUAL_MAPPINGS_KEY)
-  );
+  const [manualMappings, setManualMappings] = useState(() => readStorage(MANUAL_MAPPINGS_KEY));
 
   const activeSymbolInput = editingStockId
     ? editStockForm.symbol
@@ -2509,9 +2447,7 @@ export default function App() {
       const nextCashEntries = Array.isArray(parsed.cashEntries)
         ? parsed.cashEntries
         : [];
-      const nextStockEntries = normalizeStockEntries(
-        Array.isArray(parsed.stockEntries) ? parsed.stockEntries : []
-      );
+      const nextStockEntries = Array.isArray(parsed.stockEntries) ? parsed.stockEntries : [];
       const nextDpChargeEntries = Array.isArray(parsed.dpChargeEntries)
         ? parsed.dpChargeEntries.map((item) => ({
             id: item?.id ? String(item.id) : crypto.randomUUID(),
