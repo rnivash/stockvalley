@@ -8,7 +8,14 @@ const SYMBOL_KEY = 'stockvalley-symbol-suggestions';
 const DP_CHARGES_KEY = 'stockvalley-dp-charge-entries';
 const MANUAL_MAPPINGS_KEY = 'stockvalley-manual-mappings';
 
-const readStorage = (key) => JSON.parse(localStorage.getItem(key));
+const readStorage = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
 
 const saveStorage = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 
