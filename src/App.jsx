@@ -1477,56 +1477,84 @@ function DailyPLPage({
   );
 }
 
-function SplitViewPage({symbolProfitLoss,
+function SplitViewPage({ symbolProfitLoss,
   stockEntries,
-  manualMappings}){
+  manualMappings,
+  currency: currencyFormatter,
+  formatDate: formatDateFn }) {
 
-    const [symbolFilter, setSymbolFilter] = useState('ALL');
+  const [symbolFilter, setSymbolFilter] = useState('ALL');
+  const [expandedBuy, setExpandedBuy] = useState(null);
 
-    const allSymbols = (
-      symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
-    ).sort();
+  const allSymbols = (
+    symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
+  ).sort();
 
-    
-
-    const symbolBuys = stockEntries.filter(
-      (item) =>
+  const symbolBuys = stockEntries.filter(
+    (item) =>
       symbolFilter !== 'ALL' && item.symbol === symbolFilter && toAction(item.action) === 'buy'
-    );
+  );
 
-    return (<>
+  const buyAllocated = {};
 
-            <div>
-              <label htmlFor="split-view-filter">Symbol</label>
-              <CustomSelect
-                id="split-view-filter"
-                value={symbolFilter}
-                onChange={(e) => setSymbolFilter(e.target.value)}
-              >
-                <option value="ALL">All Symbols</option>
-                {allSymbols.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </CustomSelect>
-            </div>
-            <div>
-              {symbolFilter != 'ALL'?(<>
+  manualMappings.forEach((link) => {
+    if (!buyAllocated[link.buyId])
+      buyAllocated[link.buyId] = 1;
 
-              {
-                symbolBuys.map((item1, idx) => {
-                  return(
-                    <li> {idx} - Price :{item1.price} Quantity: {item1.quantity} date: {item1.date} Total {(item1.quantity * item1.price) + item1.charges}  </li>
-                  )
-                })  
-              
-              }
-              
-              </>):(<></>)}
-            </div>
-    
-    </>);
+
+
+  });
+
+  const unlinkedBuys = symbolBuys.filter((b) => {
+    const allocated = buyAllocated[b.id] || 0;
+    return allocated < 1;
+  });
+
+  return (<>
+
+    <div>
+      <CustomSelect
+        id="split-view-filter"
+        value={symbolFilter}
+        onChange={(e) => setSymbolFilter(e.target.value)}
+      >
+        <option value="ALL">All Symbols</option>
+        {allSymbols.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </CustomSelect>
+    </div>
+    <div className='split-view'>
+      {symbolFilter != 'ALL' ? (<>
+        <ul>
+          {
+            unlinkedBuys.map((item1, idx) => {
+
+              const isExpanded = expandedBuy === item1.id;
+              const currentamount = (item1.quantity * item1.price) + item1.charges;
+              return (
+                <li onClick={() => { setExpandedBuy(isExpanded ? null : item1.id) }}> {idx + 1}.&nbsp;
+                  {formatDateFn(item1.date)} - {currencyFormatter(item1.price)} X {item1.quantity}
+                  = {currencyFormatter(currentamount)}
+                  <br />
+                  {isExpanded && (<div className='target-box'>
+                    Target 500 : {currencyFormatter((currentamount + 500) / item1.quantity)} <br />
+                    Trget 1000 : {currencyFormatter((currentamount + 1000) / item1.quantity)} <br />
+                    Target 1500 : {currencyFormatter((currentamount + 1500) / item1.quantity)}<br />
+                    Target 2000 : {currencyFormatter((currentamount + 2000) / item1.quantity)}<br />
+                  </div>)}
+                </li>
+              )
+            })
+
+          }
+        </ul>
+      </>) : (<></>)}
+    </div>
+
+  </>);
 
 }
 
@@ -2572,7 +2600,8 @@ export default function App() {
         />
 
         <Route path="/split-view" element={
-            <SplitViewPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} manualMappings={manualMappings} />
+            <SplitViewPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} 
+            manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

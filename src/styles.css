@@ -1689,6 +1689,26 @@ textarea {
   background: #475569;
 }
 
+.split-view ul{
+  list-style-type:none;
+  padding-left: 0px;
+}
+
+.split-view ul li{
+  padding: 5px;
+  background-color: #ffffff;
+  margin-top: 5px;
+  cursor: pointer;
+}
+
+.split-view .target-box{
+  background-color: #b91c1c;
+  color: #ffffff;
+  display:inline-block;
+  padding: 5px;
+  font-weight: 500;
+  margin: 10px 0 10px 0;
+}
 @media (min-width: 740px) {
   .app-shell {
     padding: 1.5rem;
