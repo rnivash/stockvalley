@@ -1490,19 +1490,14 @@ function SplitViewPage({ symbolProfitLoss,
     symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
   ).sort();
 
-  const symbolBuys = stockEntries.filter(
-    (item) =>
-      symbolFilter !== 'ALL' && item.symbol === symbolFilter && toAction(item.action) === 'buy'
-  );
+  const symbolBuys = stockEntries.filter((item) => symbolFilter !== 'ALL' 
+    && item.symbol === symbolFilter && toAction(item.action) === 'buy');
 
   const buyAllocated = {};
 
   manualMappings.forEach((link) => {
     if (!buyAllocated[link.buyId])
       buyAllocated[link.buyId] = 1;
-
-
-
   });
 
   const unlinkedBuys = symbolBuys.filter((b) => {
@@ -1541,7 +1536,7 @@ function SplitViewPage({ symbolProfitLoss,
                   <br />
                   {isExpanded && (<div className='target-box'>
                     Target 500 : {currencyFormatter((currentamount + 500) / item1.quantity)} <br />
-                    Trget 1000 : {currencyFormatter((currentamount + 1000) / item1.quantity)} <br />
+                    Target 1000 : {currencyFormatter((currentamount + 1000) / item1.quantity)} <br />
                     Target 1500 : {currencyFormatter((currentamount + 1500) / item1.quantity)}<br />
                     Target 2000 : {currencyFormatter((currentamount + 2000) / item1.quantity)}<br />
                   </div>)}
