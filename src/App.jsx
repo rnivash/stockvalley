@@ -257,6 +257,10 @@ function AppNav({ inHero = false }) {
             <span className="nav-label">Data YAML</span>
             <small className="nav-hint">Import or export all data</small>
           </NavLink>
+          <NavLink to="/split-view" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+            <span className="nav-label">Split view</span>
+            <small className="nav-hint">View all buys</small>
+          </NavLink>
         </nav>
       )}
     </section>
@@ -1473,6 +1477,59 @@ function DailyPLPage({
   );
 }
 
+function SplitViewPage({symbolProfitLoss,
+  stockEntries,
+  manualMappings}){
+
+    const [symbolFilter, setSymbolFilter] = useState('ALL');
+
+    const allSymbols = (
+      symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
+    ).sort();
+
+    
+
+    const symbolBuys = stockEntries.filter(
+      (item) =>
+      symbolFilter !== 'ALL' && item.symbol === symbolFilter && toAction(item.action) === 'buy'
+    );
+
+    return (<>
+
+            <div>
+              <label htmlFor="split-view-filter">Symbol</label>
+              <CustomSelect
+                id="split-view-filter"
+                value={symbolFilter}
+                onChange={(e) => setSymbolFilter(e.target.value)}
+              >
+                <option value="ALL">All Symbols</option>
+                {allSymbols.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </CustomSelect>
+            </div>
+            <div>
+              {symbolFilter != 'ALL'?(<>
+
+              {
+                symbolBuys.map((item1, idx) => {
+                  return(
+                    <li> {idx} - Price :{item1.price} Quantity: {item1.quantity} date: {item1.date} Total {(item1.quantity * item1.price) + item1.charges}  </li>
+                  )
+                })  
+              
+              }
+              
+              </>):(<></>)}
+            </div>
+    
+    </>);
+
+}
+
 export default function App() {
   const [cashEntries, setCashEntries] = useState(() => readStorage(CASH_KEY));
   const [stockEntries, setStockEntries] = useState(() => readStorage(STOCK_KEY));
@@ -2511,6 +2568,11 @@ export default function App() {
         <Route path="/data-yaml" element={
             <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
               exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
+          }
+        />
+
+        <Route path="/split-view" element={
+            <SplitViewPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} manualMappings={manualMappings} />
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
