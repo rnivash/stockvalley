@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { dump, load } from 'js-yaml';
-import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useParams  } from 'react-router-dom';
 
 const CASH_KEY = 'stockvalley-cash-entries';
 const STOCK_KEY = 'stockvalley-stock-entries';
@@ -257,7 +257,7 @@ function AppNav({ inHero = false }) {
             <span className="nav-label">Data YAML</span>
             <small className="nav-hint">Import or export all data</small>
           </NavLink>
-          <NavLink to="/split-view" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to="/split-view/ALL" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Split view</span>
             <small className="nav-hint">View all buys</small>
           </NavLink>
@@ -360,7 +360,7 @@ function DashboardPage({totals, currency: currencyFormatter, openStockAges = {},
                       style={{ backgroundColor: item.color }}
                     />
                     <div>
-                      <strong>{item.label}</strong>
+                      <Link to={"/split-view/" + item.label }><strong>{item.label}</strong></Link>
                       <div className="allocation-badges">
                         <span className="metric-badge allocation-invested">
                           {currencyFormatter(item.value)}
@@ -1481,9 +1481,10 @@ function SplitViewPage({ symbolProfitLoss,
   stockEntries,
   manualMappings,
   currency: currencyFormatter,
-  formatDate: formatDateFn }) {
+  formatDate: formatDateFn}) {
 
-  const [symbolFilter, setSymbolFilter] = useState('ALL');
+  const { findsymbol } = useParams();
+  const [symbolFilter, setSymbolFilter] = useState(findsymbol ? findsymbol : 'ALL');
   const [expandedBuy, setExpandedBuy] = useState(null);
 
   const allSymbols = (
@@ -2594,7 +2595,7 @@ export default function App() {
           }
         />
 
-        <Route path="/split-view" element={
+        <Route path="/split-view/:findsymbol" element={
             <SplitViewPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} 
             manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
           }
