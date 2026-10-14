@@ -853,27 +853,20 @@ function SymbolPnlPage({ symbolProfitLossRows, currency: currencyFormatter }) {
 }
 
 function MonthlyPnlPage({
-  monthlyPerformanceRows,
   currency: currencyFormatter,
+  pnlByDate
 }) {
-  const maxAbsGainPercent = useMemo(
-    () =>
-      monthlyPerformanceRows.reduce(
-        (max, item) =>
-          Math.max(
-            max,
-            Math.abs(item.gainPercent === null ? 0 : item.gainPercent)
-          ),
-        0
-      ),
-    [monthlyPerformanceRows]
-  );
 
-  const formatPercent = (value) => {
-    if (value === null) return 'N/A';
-    const sign = value > 0 ? '+' : '';
-    return `${sign}${value.toFixed(2)}%`;
-  };
+  const monthlyPerformanceRows ={};
+
+  for(let idx in pnlByDate){
+    let month = idx.slice(0,7);
+    monthlyPerformanceRows[month] = (monthlyPerformanceRows[month] | 0 ) + pnlByDate[idx];
+  }
+  let monthpnl = [];
+  for(let idy in monthlyPerformanceRows){
+    monthpnl.push({"monthKey" :idy, "netPnl": monthlyPerformanceRows[idy]});
+  }
 
   return (
     <section className="panel monthly-pnl-page">
@@ -884,17 +877,12 @@ function MonthlyPnlPage({
         fund added minus withdrawn).
       </p>
 
-      {monthlyPerformanceRows.length ? (
+      {monthpnl.length ? (
         <section className="monthly-chart-wrap">
           <h3>Monthly Gain Percentage</h3>
           <div className="monthly-chart-list">
-            {monthlyPerformanceRows.map((item) => {
-              const gainValue =
-                item.gainPercent === null ? 0 : item.gainPercent;
-              const gainWidth =
-                maxAbsGainPercent > 0
-                  ? `${(Math.abs(gainValue) / maxAbsGainPercent) * 100}%`
-                  : '0%';
+            {monthpnl.map((item) => {
+              
 
               return (
                 <article
@@ -903,47 +891,11 @@ function MonthlyPnlPage({
                 >
                   <div className="monthly-row-head">
                     <strong>{formatMonthLabel(item.monthKey)}</strong>
-                    <strong
-                      className={gainValue >= 0 ? 'cell-good' : 'cell-bad'}
-                    >
-                      {formatPercent(item.gainPercent)} |{' '}
+                    <strong>
                       {currencyFormatter(item.netPnl)}
                     </strong>
                   </div>
-                  <div className="monthly-bar-track">
-                    <div className="monthly-bar-side left">
-                      {gainValue < 0 ? (
-                        <span
-                          className="monthly-bar negative"
-                          style={{ width: gainWidth }}
-                        />
-                      ) : null}
-                    </div>
-                    <div className="monthly-bar-side right">
-                      {gainValue >= 0 ? (
-                        <span
-                          className="monthly-bar positive"
-                          style={{ width: gainWidth }}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-                  <p className="monthly-row-meta">
-                    {(() => {
-                      const fdInterest = (item.netFunds * 0.06) / 12;
-                      const diffPercent =
-                        fdInterest !== 0
-                          ? ((item.netPnl - fdInterest) / fdInterest) * 100
-                          : 0;
-                      return `Net Funds ${currencyFormatter(
-                        item.netFunds
-                      )} | FD Interest (6% p.a./month) ${currencyFormatter(
-                        fdInterest
-                      )} | vs P/L ${currencyFormatter(
-                        item.netPnl
-                      )} | Difference ${formatPercent(diffPercent)}`;
-                    })()}
-                  </p>
+                  
                 </article>
               );
             })}
@@ -1734,35 +1686,6 @@ export default function App() {
       }
     );
 
-    const monthlyAccumulator = {};
-    const ensureMonthBucket = (monthKey) => {
-      if (!monthKey) return null;
-      if (!monthlyAccumulator[monthKey]) {
-        monthlyAccumulator[monthKey] = {
-          monthKey,
-          fundDelta: 0,
-          realizedPnlBeforeDp: 0,
-          dpCharges: 0,
-        };
-      }
-      return monthlyAccumulator[monthKey];
-    };
-
-    cashEntries.forEach((item) => {
-      const monthBucket = ensureMonthBucket(getMonthKey(item.date));
-      if (!monthBucket) return;
-
-      const amount = toNumber(item.amount);
-      if (item.type === 'deposit') {
-        monthBucket.fundDelta += amount;
-        return;
-      }
-
-      if (item.type === 'withdraw') {
-        monthBucket.fundDelta -= amount;
-      }
-    });
-
     const stocksBySymbol = orderedStocks.reduce((map, item) => {
       if (!map[item.symbol]) map[item.symbol] = [];
       map[item.symbol].push(item);
@@ -1862,16 +1785,6 @@ export default function App() {
             summary.matchedSellValue +=
               intradaySellGrossValue - intradaySellCharges;
 
-            const monthBucket = ensureMonthBucket(dateKey.slice(0, 7));
-            const realizedPnl =
-              intradaySellGrossValue -
-              intradaySellCharges -
-              (intradayBuyGrossValue + intradayBuyCharges);
-            if (monthBucket) {
-              monthBucket.realizedPnlBeforeDp += realizedPnl;
-            }
-
-            
           }
 
           const remainingBuyQty = dayBuyQty - intradayQty;
@@ -1915,14 +1828,6 @@ export default function App() {
               summary.matchedSellValue +=
                 matchedSellGrossValue - matchedSellCharges;
 
-              const monthBucket = ensureMonthBucket(dateKey.slice(0, 7));
-              const realizedPnl =
-                matchedSellGrossValue -
-                matchedSellCharges -
-                (matchedBuyGrossValue + matchedBuyCharges);
-              if (monthBucket) {
-                monthBucket.realizedPnlBeforeDp += realizedPnl;
-              }
 
               lot.qty -= matchedQty;
               lot.grossValue -= matchedBuyGrossValue;
@@ -1960,34 +1865,6 @@ export default function App() {
       (sum, item) => sum + Math.abs(toNumber(item.amount)),
       0
     );
-
-    dpChargeEntries.forEach((item) => {
-      const monthBucket = ensureMonthBucket(getMonthKey(item.date));
-      if (!monthBucket) return;
-      monthBucket.dpCharges += Math.abs(toNumber(item.amount));
-    });
-
-    let runningNetFunds = 0;
-    const monthlyPerformanceRows = Object.keys(monthlyAccumulator)
-      .sort()
-      .map((monthKey) => {
-        const item = monthlyAccumulator[monthKey];
-        runningNetFunds += item.fundDelta;
-        const netPnl = item.realizedPnlBeforeDp - item.dpCharges;
-        return {
-          ...item,
-          netFunds: runningNetFunds,
-          netPnl,
-          gainPercent:
-            runningNetFunds > 0 ? (netPnl / runningNetFunds) * 100 : null,
-        };
-      })
-      .filter(
-        (item) =>
-          item.fundDelta !== 0 ||
-          item.realizedPnlBeforeDp !== 0 ||
-          item.dpCharges > 0
-      );
 
     const pnlAfterDpCharges = closedTradeDiff - totalDpCharges;
     const totalProfit = Object.values(symbolProfitLoss).reduce((sum, item) => {
@@ -2137,7 +2014,6 @@ export default function App() {
       investedByStock,
       symbolProfitLoss,
       symbolProfitLossRows,
-      monthlyPerformanceRows,
       allocationLegend,
       allocationGradient,
       allocationTotal,
@@ -2589,7 +2465,7 @@ export default function App() {
           }
         />
         <Route path="/monthly-pnl" element={
-            <MonthlyPnlPage monthlyPerformanceRows={totals.monthlyPerformanceRows} currency={currency}/>
+            <MonthlyPnlPage currency={currency} pnlByDate={pnlByDate}/>
           }
         />
         <Route path="/daily-pnl" element={
