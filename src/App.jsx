@@ -267,7 +267,13 @@ function AppNav({ inHero = false }) {
   );
 }
 
-function DashboardPage({totals, currency: currencyFormatter, openStockAges = {},mappingOpenAvgPrices = {}}) {
+function DashboardPage({totals, 
+  currency: currencyFormatter, 
+  openStockAges = {},
+  mappingOpenAvgPrices = {}, 
+  stockEntries,
+  manualMappings,
+  pnlByDate}) {
   const netProfit =
     totals.closedTradeDiffWithoutCharges -
     totals.totalCharges -
@@ -333,6 +339,10 @@ function DashboardPage({totals, currency: currencyFormatter, openStockAges = {},
               Take Home {currencyFormatter(takeHomeFund)}
             </span>
           </div>
+        </article>
+        <article className='card good'>
+        <small>Today</small>
+        <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
         </article>
       </section>
 
@@ -1412,11 +1422,17 @@ function DataYamlPage({
 }
 
 function DailyPLPage({
-  dailyPLData,
   currency: currencyFormatter,
   formatDate: formatDateFn,
+  pnlByDate  
 }) {
-  const last15DaysData = dailyPLData.slice(0, 15);
+
+  const last15DaysData = [];
+
+  for(let idx in pnlByDate){
+    
+    last15DaysData.push({"date": idx, "pnl": pnlByDate[idx]})
+  }
 
   return (
     <section className="panel">
@@ -1475,6 +1491,15 @@ function DailyPLPage({
       )}
     </section>
   );
+}
+
+function TodayBooked({manualMappings, stockEntries, pnlByDate}){
+  const today = getDateKey(new Date());
+  const todaysold = pnlByDate[today];
+
+  return(<>
+  {todaysold}
+    </>);
 }
 
 function SplitViewPage({ symbolProfitLoss,
@@ -1626,6 +1651,31 @@ export default function App() {
     [cashEntries]
   );
 
+  const stockEntriesMap = useMemo(() => {
+    return new Map(stockEntries.map(item => [item.id, item]));
+  }, [stockEntries]);
+
+  const pnlByDate = useMemo(() => {
+    return manualMappings.reduce((acc, x) => {
+      const buyItem = stockEntriesMap.get(x.buyId);
+      const sellItem = stockEntriesMap.get(x.sellId);
+  
+      if (!buyItem || !sellItem) {
+        return acc;
+      }
+  
+      const dateKey = getDateKey(sellItem.createdAt);
+  
+      const pnl =
+        (sellItem.price * x.qty - buyItem.price * x.qty) -
+        (sellItem.charges + buyItem.charges);
+  
+      acc[dateKey] = (acc[dateKey] || 0) + pnl;
+  
+      return acc;
+    }, {});
+  }, [manualMappings, stockEntriesMap]);
+
   const totals = useMemo(() => {
     const totalFundAdded = cashEntries.reduce(
       (sum, item) =>
@@ -1731,20 +1781,6 @@ export default function App() {
     };
 
     const stockPositions = {};
-    const dailyRealizedMap = {};
-
-    const ensureDailyBucket = (dateKey) => {
-      if (!dateKey) return null;
-      if (!dailyRealizedMap[dateKey]) {
-        dailyRealizedMap[dateKey] = {
-          date: dateKey,
-          pnl: 0,
-          tradeCount: 0,
-          symbols: new Set(),
-        };
-      }
-      return dailyRealizedMap[dateKey];
-    };
 
     Object.entries(stocksBySymbol).forEach(([symbol, symbolItems]) => {
       const dayGroups = symbolItems.reduce((map, item) => {
@@ -1805,14 +1841,6 @@ export default function App() {
             0
           );
 
-          if (daySellItems.length > 0) {
-            const dayBucket = ensureDailyBucket(dateKey);
-            if (dayBucket) {
-              dayBucket.tradeCount += daySellItems.length;
-              dayBucket.symbols.add(symbol);
-            }
-          }
-
           const intradayQty = Math.min(dayBuyQty, daySellQty);
           const intradayBuyGrossValue =
             dayBuyQty > 0 ? (dayBuyGrossValue * intradayQty) / dayBuyQty : 0;
@@ -1843,10 +1871,7 @@ export default function App() {
               monthBucket.realizedPnlBeforeDp += realizedPnl;
             }
 
-            const dayBucket = ensureDailyBucket(dateKey);
-            if (dayBucket) {
-              dayBucket.pnl += realizedPnl;
-            }
+            
           }
 
           const remainingBuyQty = dayBuyQty - intradayQty;
@@ -1897,11 +1922,6 @@ export default function App() {
                 (matchedBuyGrossValue + matchedBuyCharges);
               if (monthBucket) {
                 monthBucket.realizedPnlBeforeDp += realizedPnl;
-              }
-
-              const dayBucket = ensureDailyBucket(dateKey);
-              if (dayBucket) {
-                dayBucket.pnl += realizedPnl;
               }
 
               lot.qty -= matchedQty;
@@ -2093,15 +2113,6 @@ export default function App() {
 
     const finalAmount = cashDeposited + pnlAfterDpCharges;
 
-    const dailyPLData = Object.values(dailyRealizedMap)
-      .map((day) => ({
-        date: day.date,
-        pnl: day.pnl,
-        tradeCount: day.tradeCount,
-        symbols: Array.from(day.symbols).sort(),
-      }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-
     return {
       remainingCash: finalAmount,
       netFundsOnly: cashDeposited,
@@ -2127,7 +2138,6 @@ export default function App() {
       symbolProfitLoss,
       symbolProfitLossRows,
       monthlyPerformanceRows,
-      dailyPLData,
       allocationLegend,
       allocationGradient,
       allocationTotal,
@@ -2549,7 +2559,10 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={
-            <DashboardPage totals={totals} currency={currency} openStockAges={openStockAges} mappingOpenAvgPrices={mappingOpenAvgPrices}/>
+            <DashboardPage totals={totals} currency={currency} openStockAges={openStockAges}
+             mappingOpenAvgPrices={mappingOpenAvgPrices} 
+             stockEntries={stockEntries} manualMappings={manualMappings}
+             pnlByDate={pnlByDate} />
           }
         />
         <Route path="/money" element={
@@ -2580,7 +2593,7 @@ export default function App() {
           }
         />
         <Route path="/daily-pnl" element={
-            <DailyPLPage dailyPLData={totals.dailyPLData} currency={currency} formatDate={formatDate} />
+            <DailyPLPage currency={currency} formatDate={formatDate} pnlByDate={pnlByDate} />
           }
         />
         <Route path="/buy-sell-mapping" element={
