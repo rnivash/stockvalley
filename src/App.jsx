@@ -864,9 +864,12 @@ function MonthlyPnlPage({
     monthlyPerformanceRows[month] = (monthlyPerformanceRows[month] | 0 ) + pnlByDate[idx];
   }
   let monthpnl = [];
-  for(let idy in monthlyPerformanceRows){
-    monthpnl.push({"monthKey" :idy, "netPnl": monthlyPerformanceRows[idy]});
-  }
+
+  Object.entries(monthlyPerformanceRows)
+    .sort(([date1], [date2]) => date1.localeCompare(date2))
+    .forEach(([date, value]) => {
+        monthpnl.push({"monthKey" :date, "netPnl": value});
+    });
 
   return (
     <section className="panel monthly-pnl-page">
@@ -1381,10 +1384,11 @@ function DailyPLPage({
 
   const last15DaysData = [];
 
-  for(let idx in pnlByDate){
-    
-    last15DaysData.push({"date": idx, "pnl": pnlByDate[idx]})
-  }
+  Object.entries(pnlByDate)
+    .sort(([date1], [date2]) => date2.localeCompare(date1))
+    .forEach(([date, value]) => {
+      last15DaysData.push({"date": date, "pnl": value});
+    });
 
   return (
     <section className="panel">
