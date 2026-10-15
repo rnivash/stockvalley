@@ -891,7 +891,7 @@ function MonthlyPnlPage({
                 >
                   <div className="monthly-row-head">
                     <strong>{formatMonthLabel(item.monthKey)}</strong>
-                    <strong>
+                    <strong className={item.netPnl >= 0 ? 'cell-good' : 'cell-bad'}>
                       {currencyFormatter(item.netPnl)}
                     </strong>
                   </div>
@@ -1616,7 +1616,7 @@ export default function App() {
         return acc;
       }
   
-      const dateKey = getDateKey(sellItem.createdAt);
+      const dateKey = getDateKey(sellItem.date);
   
       const pnl =
         (sellItem.price * x.qty - buyItem.price * x.qty) -
