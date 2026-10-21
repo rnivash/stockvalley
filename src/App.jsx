@@ -281,8 +281,6 @@ function DashboardPage({totals,
     totals.totalLoss;
   const takeHomeFund = totals.netFundsOnly + netProfit;
 
-  let newnetfund = 0;
-  Object.values(pnlByDate).reduces()
 
   return (
     <>
