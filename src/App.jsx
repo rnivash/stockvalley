@@ -281,6 +281,9 @@ function DashboardPage({totals,
     totals.totalLoss;
   const takeHomeFund = totals.netFundsOnly + netProfit;
 
+  let newnetfund = 0;
+  Object.values(pnlByDate).reduces()
+
   return (
     <>
       <section className="summary-grid">
@@ -824,18 +827,6 @@ function SymbolPnlPage({ symbolProfitLossRows, currency: currencyFormatter }) {
               </div>
               <div className="symbol-pnl-meta">
                 <p>
-                  <span>Avg. Sell price</span>
-                  <strong>{currencyFormatter(item.avgSellPrice)}</strong>
-                </p>
-                <p>
-                  <span>Avg Buy price</span>
-                  <strong>{currencyFormatter(item.avgBuyPrice)}</strong>
-                </p>
-                <p>
-                  <span>Quantity</span>
-                  <strong>{item.quantity}</strong>
-                </p>
-                <p>
                   <span>Charges</span>
                   <strong>{currencyFormatter(item.charges)}</strong>
                 </p>
@@ -912,7 +903,7 @@ function MonthlyPnlPage({
 }
 
 function BuySellMappingPage({
-  symbolProfitLoss,
+  symbolSuggestions,
   stockEntries,
   manualMappings,
   onAddMapping,
@@ -950,11 +941,7 @@ function BuySellMappingPage({
     setSelectedSellId(null);
   };
 
-  const allSymbols = (
-    symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
-  ).sort();
-
-  const symbols = allSymbols.filter((symbol) => {
+  const symbols = symbolSuggestions.filter((symbol) => {
     if (symbolFilter !== 'ALL' && symbol !== symbolFilter) return false;
     if (showOpenOnly) {
       const symbolMappings = manualMappings.filter((m) => m.symbol === symbol);
@@ -981,7 +968,7 @@ function BuySellMappingPage({
         to which purchases.
       </p>
 
-      {allSymbols.length ? (
+      {symbolSuggestions.length ? (
         <>
           <div className="mapping-filters">
             <div className="stock-filter-row">
@@ -992,7 +979,7 @@ function BuySellMappingPage({
                 onChange={(e) => setSymbolFilter(e.target.value)}
               >
                 <option value="ALL">All Symbols</option>
-                {allSymbols.map((s) => (
+                {symbolSuggestions.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -1458,7 +1445,8 @@ function TodayBooked({manualMappings, stockEntries, pnlByDate}){
     </>);
 }
 
-function SplitViewPage({ symbolProfitLoss,
+function SplitViewPage({ 
+  symbolSuggestions,
   stockEntries,
   manualMappings,
   currency: currencyFormatter,
@@ -1467,10 +1455,6 @@ function SplitViewPage({ symbolProfitLoss,
   const { findsymbol } = useParams();
   const [symbolFilter, setSymbolFilter] = useState(findsymbol ? findsymbol : 'ALL');
   const [expandedBuy, setExpandedBuy] = useState(null);
-
-  const allSymbols = (
-    symbolProfitLoss ? Object.keys(symbolProfitLoss) : []
-  ).sort();
 
   const symbolBuys = stockEntries.filter((item) => symbolFilter !== 'ALL' 
     && item.symbol === symbolFilter && toAction(item.action) === 'buy');
@@ -1487,6 +1471,16 @@ function SplitViewPage({ symbolProfitLoss,
     return allocated < 1;
   });
 
+  let someprice =0;
+  let someqty =0;
+
+  for(let i in unlinkedBuys){
+    someprice += unlinkedBuys[i].price * unlinkedBuys[i].quantity;
+    someqty += unlinkedBuys[i].quantity;
+  }
+
+  let avgprice = someprice/someqty;
+
   return (<>
 
     <div>
@@ -1496,7 +1490,7 @@ function SplitViewPage({ symbolProfitLoss,
         onChange={(e) => setSymbolFilter(e.target.value)}
       >
         <option value="ALL">All Symbols</option>
-        {allSymbols.map((s) => (
+        {symbolSuggestions.map((s) => (
           <option key={s} value={s}>
             {s}
           </option>
@@ -1505,6 +1499,7 @@ function SplitViewPage({ symbolProfitLoss,
     </div>
     <div className='split-view'>
       {symbolFilter != 'ALL' ? (<>
+        <div>Average price of open stocks: {currencyFormatter(avgprice)}</div>
         <ul>
           {
             unlinkedBuys.map((item1, idx) => {
@@ -1882,23 +1877,15 @@ export default function App() {
 
     const symbolProfitLossRows = Object.values(symbolProfitLoss)
       .map((item) => {
-        const quantity = item.quantity;
-        const avgBuyPrice = quantity > 0 ? item.matchedBuyValue / quantity : 0;
-        const avgSellPrice =
-          quantity > 0 ? item.matchedSellValue / quantity : 0;
         const difference = item.matchedSellValue - item.matchedBuyValue;
         const charges = item.matchedBuyCharges + item.matchedSellCharges;
 
         return {
           symbol: item.symbol,
-          quantity,
-          avgBuyPrice,
-          avgSellPrice,
           difference,
           charges,
         };
       })
-      .filter((item) => item.quantity > 0)
       .sort((a, b) => b.difference - a.difference);
 
     const { totalBought, totalSold, totalCharges, tradeCashFlow } =
@@ -2016,7 +2003,6 @@ export default function App() {
       pnlBeforeDpCharges: closedTradeDiff,
       holdings,
       investedByStock,
-      symbolProfitLoss,
       symbolProfitLossRows,
       allocationLegend,
       allocationGradient,
@@ -2477,7 +2463,7 @@ export default function App() {
           }
         />
         <Route path="/buy-sell-mapping" element={
-            <BuySellMappingPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} manualMappings={manualMappings}
+            <BuySellMappingPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} manualMappings={manualMappings}
               onAddMapping={addManualMapping} onRemoveMapping={removeManualMapping} onResetSymbol={resetSymbolMappings}
               currency={currency} formatDate={formatDate} />
           }
@@ -2489,7 +2475,7 @@ export default function App() {
         />
 
         <Route path="/split-view/:findsymbol" element={
-            <SplitViewPage symbolProfitLoss={totals.symbolProfitLoss} stockEntries={stockEntries} 
+            <SplitViewPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} 
             manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
           }
         />
