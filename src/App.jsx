@@ -277,13 +277,21 @@ function DashboardPage({totals,
   dpchargetotal,
   fundtotal}) {
 
+  let tax =0;
+
+  for(let i in stockEntries){
+    let itm = stockEntries[i];
+    tax = tax + itm.charges;
+
+  }
+
   let totalprofit =0;
 
   for(let idx in pnlByDate){
     totalprofit = totalprofit + pnlByDate[idx];
   }
 
-  totalprofit = totalprofit- dpchargetotal;
+  totalprofit = totalprofit- dpchargetotal - tax;
 
 
   return (
@@ -299,15 +307,23 @@ function DashboardPage({totals,
               Withdrawn {currencyFormatter(fundtotal[1])}
             </span>
             <span className="metric-badge net-funds">
-              {currencyFormatter(fundtotal[0]- fundtotal[1])}
+              Balance {currencyFormatter(fundtotal[0]- fundtotal[1])}
             </span>
-            
+            <span className={`metric-badge ${ totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad' }`}>
+              Trade Balance {currencyFormatter(totals.projectedAmount)}
+            </span>            
           </div>
         </article>
 
         <article className="card good">
           <small>Profit & Loss</small>
           <div className="metric-badges">
+            <span className={`metric-badge net-profit-bad`} >
+              Tax {currencyFormatter(tax)}
+            </span>
+            <span className={`metric-badge net-profit-bad`} >
+              DP {currencyFormatter(dpchargetotal)}
+            </span>
             <span
               className={`metric-badge ${
                 totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
@@ -315,13 +331,7 @@ function DashboardPage({totals,
             >
               Net Profit {currencyFormatter(totalprofit)}
             </span>
-            <span
-              className={`metric-badge ${
-                totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad'
-              }`}
-            >
-              Trade Balance {currencyFormatter(totals.projectedAmount)}
-            </span>
+            
           </div>
         </article>
         <article className='card good'>
@@ -1627,8 +1637,7 @@ export default function App() {
       const dateKey = getDateKey(sellItem.date);
   
       const pnl =
-        (sellItem.price * x.qty - buyItem.price * x.qty) -
-        (sellItem.charges + buyItem.charges);
+        (sellItem.price * x.qty - buyItem.price * x.qty);
   
       acc[dateKey] = (acc[dateKey] || 0) + pnl;
   
