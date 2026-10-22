@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { dump, load } from 'js-yaml';
-import { Link, NavLink, Navigate, Route, Routes, useLocation, useParams  } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useParams, useNavigate  } from 'react-router-dom';
 
 const CASH_KEY = 'stockvalley-cash-entries';
 const STOCK_KEY = 'stockvalley-stock-entries';
@@ -273,13 +273,17 @@ function DashboardPage({totals,
   mappingOpenAvgPrices = {}, 
   stockEntries,
   manualMappings,
-  pnlByDate}) {
-  const netProfit =
-    totals.closedTradeDiffWithoutCharges -
-    totals.totalCharges -
-    totals.totalDpCharges -
-    totals.totalLoss;
-  const takeHomeFund = totals.netFundsOnly + netProfit;
+  pnlByDate,
+  dpchargetotal,
+  fundtotal}) {
+
+  let totalprofit =0;
+
+  for(let idx in pnlByDate){
+    totalprofit = totalprofit + pnlByDate[idx];
+  }
+
+  totalprofit = totalprofit- dpchargetotal;
 
 
   return (
@@ -289,13 +293,27 @@ function DashboardPage({totals,
           <small>Deposits &amp; Withdrawals</small>
           <div className="metric-badges">
             <span className="metric-badge deposit">
-              Deposited {currencyFormatter(totals.totalFundAdded)}
+              Deposited {currencyFormatter(fundtotal[0])}
             </span>
             <span className="metric-badge withdrawn">
-              Withdrawn {currencyFormatter(totals.totalFundWithdrawn)}
+              Withdrawn {currencyFormatter(fundtotal[1])}
             </span>
             <span className="metric-badge net-funds">
-              Net Funds {currencyFormatter(totals.netFundsOnly)}
+              {currencyFormatter(fundtotal[0]- fundtotal[1])}
+            </span>
+            
+          </div>
+        </article>
+
+        <article className="card good">
+          <small>Profit & Loss</small>
+          <div className="metric-badges">
+            <span
+              className={`metric-badge ${
+                totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
+              }`}
+            >
+              Net Profit {currencyFormatter(totalprofit)}
             </span>
             <span
               className={`metric-badge ${
@@ -306,48 +324,28 @@ function DashboardPage({totals,
             </span>
           </div>
         </article>
-
-        <article className="card good">
-          <small>Profit & Loss</small>
-          <div className="pnl-badges">
-            <span className="pnl-badge tax">
-              Tax {currencyFormatter(totals.totalCharges)}
-            </span>
-            <span className="pnl-badge dp">
-              DP {currencyFormatter(totals.totalDpCharges)}
-            </span>
-            <span className="pnl-badge loss">
-              Loss {currencyFormatter(totals.totalLoss)}
-            </span>
-          </div>
-          <div className="metric-badges">
-            <span className="metric-badge gross-profit">
-              Gross Profit{' '}
-              {currencyFormatter(totals.closedTradeDiffWithoutCharges)}
-            </span>
-            <span
-              className={`metric-badge ${
-                netProfit >= 0 ? 'net-profit-good' : 'net-profit-bad'
-              }`}
-            >
-              Net Profit {currencyFormatter(netProfit)}
-            </span>
-            <span
-              className={`metric-badge ${
-                takeHomeFund >= 0 ? 'take-home-good' : 'take-home-bad'
-              }`}
-            >
-              Take Home {currencyFormatter(takeHomeFund)}
-            </span>
-          </div>
-        </article>
         <article className='card good'>
         <small>Today</small>
         <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
         </article>
       </section>
 
-      <section className="panel">
+      <ActiveTrade totals={totals} currency={currency} openStockAges={openStockAges}
+             mappingOpenAvgPrices={mappingOpenAvgPrices} ></ActiveTrade>
+
+      
+    </>
+  );
+}
+
+function ActiveTrade({totals, 
+  currency: currencyFormatter, 
+  openStockAges = {},
+  mappingOpenAvgPrices = {}}){
+
+  return (<>
+
+<section className="panel">
         <h2>Stock Wise Invested Money</h2>
         {totals.allocationLegend.length ? (
           <div className="allocation-wrap">
@@ -410,8 +408,8 @@ function DashboardPage({totals,
           <p className="empty">No active stock investments yet.</p>
         )}
       </section>
-    </>
-  );
+  </>);
+
 }
 
 function MoneyPage({
@@ -1434,12 +1432,25 @@ function DailyPLPage({
   );
 }
 
-function TodayBooked({manualMappings, stockEntries, pnlByDate}){
+function TodayBooked({pnlByDate}){
   const today = getDateKey(new Date());
   const todaysold = pnlByDate[today];
 
+  const history = useNavigate();
+
   return(<>
-  {todaysold}
+          <div className="metric-badges">
+            <span
+              className={`metric-badge ${
+                todaysold >= 0 ? 'balance-good' : 'balance-bad'
+              }`}
+            >
+            {todaysold}
+            </span>
+            
+          </div>
+          <button onClick={() => history("/stocks")} >Stocks</button>
+  
     </>);
 }
 
@@ -1624,6 +1635,23 @@ export default function App() {
       return acc;
     }, {});
   }, [manualMappings, stockEntriesMap]);
+
+  const dpchargetotal = useMemo(() => {
+    return dpChargeEntries.reduce((result, item) =>{
+      result = result + item.amount;
+      return result;
+    }, 0);
+  },[dpChargeEntries]);
+
+  const fundtotal = useMemo(() => {
+    return cashEntries.reduce((result, item) =>{
+      if(item.type == 'withdraw')
+        result[1] = result[1] + item.amount;
+      else
+        result[0] = result[0] + item.amount;
+      return result;
+    }, [0,0]);
+  },[cashEntries]);
 
   const totals = useMemo(() => {
     const totalFundAdded = cashEntries.reduce(
@@ -2426,7 +2454,7 @@ export default function App() {
             <DashboardPage totals={totals} currency={currency} openStockAges={openStockAges}
              mappingOpenAvgPrices={mappingOpenAvgPrices} 
              stockEntries={stockEntries} manualMappings={manualMappings}
-             pnlByDate={pnlByDate} />
+             pnlByDate={pnlByDate} dpchargetotal={dpchargetotal} fundtotal={fundtotal} />
           }
         />
         <Route path="/money" element={
