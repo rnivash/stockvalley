@@ -1709,6 +1709,25 @@ textarea {
   font-weight: 500;
   margin: 10px 0 10px 0;
 }
+
+.split-view .target-box-2{
+  background-color: #16a34a;
+  color: #ffffff;
+  display:block;
+  padding: 5px;
+  font-weight: 500;
+  margin: 10px 0 10px 0;
+}
+
+.split-view .target-box-3{
+  background-color: #1e293b;
+  color: #ffffff;
+  display:block;
+  padding: 5px;
+  font-weight: 500;
+  margin: 10px 0 10px 0;
+}
+
 @media (min-width: 740px) {
   .app-shell {
     padding: 1.5rem;
