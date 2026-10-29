@@ -51,7 +51,11 @@ This repo includes a demo dataset at `public/data.yaml`. The app reads this file
 
 - `index.html` — app shell
 - `src/main.jsx` — app entry
-- `src/App.jsx` — main app component
+- `src/App.jsx` — app state, data handling, and route configuration
+- `src/components/Navigation.jsx` — shared navigation and form/list components
+- `src/pages/` — page components grouped by feature
+- `src/portfolio.js` — portfolio totals and stock allocation calculations
+- `src/utils.js` — shared storage, formatting, and data helpers
 - `src/styles.css` — global styles
 - `public/data.yaml` — demo data
 
