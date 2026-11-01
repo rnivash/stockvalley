@@ -88,7 +88,7 @@ export function ActiveTrade({ totals,
   return (<>
 
     <section className="panel">
-      {totals.allocationLegend.length && 1==2? (
+      {totals.allocationLegend.length ? (
         <ul className="allocation-legend">
           {totals.allocationLegend.map((item) => {
             const openAvgPrice =
@@ -105,6 +105,7 @@ export function ActiveTrade({ totals,
                 <div className="active-stock-symbol">
                   <Link to={"/split-view/" + item.label}>{item.label}</Link>
                 </div>
+                {item.quantity !== null && item.avgPrice !== null && (<>
                 <div className="active-stock-details">
                   <span>Buy: {currencyFormatter(openAvgPrice)}</span>
                   <span>Sell: {currencyFormatter(projectedSellPrice)}</span>
@@ -112,7 +113,7 @@ export function ActiveTrade({ totals,
                 </div>
                 <span className="stock-age-badge">
                   {openStockAges[item.label]}
-                </span>
+                </span></>)}
               </li>
             );
           })}
