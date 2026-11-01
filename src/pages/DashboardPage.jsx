@@ -88,7 +88,7 @@ export function ActiveTrade({ totals,
   return (<>
 
     <section className="panel">
-      {totals.allocationLegend.length ? (
+      {totals.allocationLegend.length && 1==2? (
         <ul className="allocation-legend">
           {totals.allocationLegend.map((item) => {
             const openAvgPrice =
