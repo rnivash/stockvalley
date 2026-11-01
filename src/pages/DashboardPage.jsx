@@ -1,31 +1,31 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { currency, getDateKey } from '../utils';
 
-export function DashboardPage({totals, 
-  currency: currencyFormatter, 
+export function DashboardPage({ totals,
+  currency: currencyFormatter,
   openStockAges = {},
-  mappingOpenAvgPrices = {}, 
+  mappingOpenAvgPrices = {},
   stockEntries,
   manualMappings,
   pnlByDate,
   dpchargetotal,
-  fundtotal}) {
+  fundtotal }) {
 
-  let tax =0;
+  let tax = 0;
 
-  for(let i in stockEntries){
+  for (let i in stockEntries) {
     let itm = stockEntries[i];
     tax = tax + itm.charges;
 
   }
 
-  let totalprofit =0;
+  let totalprofit = 0;
 
-  for(let idx in pnlByDate){
+  for (let idx in pnlByDate) {
     totalprofit = totalprofit + pnlByDate[idx];
   }
 
-  totalprofit = totalprofit- dpchargetotal - tax;
+  totalprofit = totalprofit - dpchargetotal - tax;
 
 
   return (
@@ -41,11 +41,11 @@ export function DashboardPage({totals,
               Withdrawn {currencyFormatter(fundtotal[1])}
             </span>
             <span className="metric-badge net-funds">
-              Balance {currencyFormatter(fundtotal[0]- fundtotal[1])}
+              Balance {currencyFormatter(fundtotal[0] - fundtotal[1])}
             </span>
-            <span className={`metric-badge ${ totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad' }`}>
+            <span className={`metric-badge ${totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad'}`}>
               Trade Balance {currencyFormatter(totals.projectedAmount)}
-            </span>            
+            </span>
           </div>
         </article>
 
@@ -59,126 +59,97 @@ export function DashboardPage({totals,
               DP {currencyFormatter(dpchargetotal)}
             </span>
             <span
-              className={`metric-badge ${
-                totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
-              }`}
+              className={`metric-badge ${totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
+                }`}
             >
               Net Profit {currencyFormatter(totalprofit)}
             </span>
-            
+
           </div>
         </article>
         <article className='card good'>
-        <small>Today</small>
-        <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
+          <small>Today</small>
+          <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
         </article>
       </section>
 
       <ActiveTrade totals={totals} currency={currency} openStockAges={openStockAges}
-             mappingOpenAvgPrices={mappingOpenAvgPrices} ></ActiveTrade>
+        mappingOpenAvgPrices={mappingOpenAvgPrices} ></ActiveTrade>
 
-      
+
     </>
   );
 }
-export function ActiveTrade({totals, 
-  currency: currencyFormatter, 
+export function ActiveTrade({ totals,
+  currency: currencyFormatter,
   openStockAges = {},
-  mappingOpenAvgPrices = {}}){
+  mappingOpenAvgPrices = {} }) {
 
   return (<>
 
-<section className="panel">
-        <h2>Stock Wise Invested Money</h2>
-        {totals.allocationLegend.length ? (
-          <div className="allocation-wrap">
-            <div
-              className="allocation-pie"
-              style={{ background: totals.allocationGradient }}
-            />
-            <ul className="allocation-legend">
-              {totals.allocationLegend.map((item) => {
-                const openAvgPrice =
-                  mappingOpenAvgPrices[item.label] ?? item.avgPrice;
-                const projectedSellPrice =
-                  openAvgPrice !== null && typeof openAvgPrice !== 'undefined'
-                    ? openAvgPrice * 1.04
-                    : null;
+    <section className="panel">
+      {totals.allocationLegend.length ? (
+        <div className="allocation-wrap">
+          <ul className="allocation-legend">
+            {totals.allocationLegend.map((item) => {
+              const openAvgPrice =
+                mappingOpenAvgPrices[item.label] ?? item.avgPrice;
+              const projectedSellPrice =
+                openAvgPrice !== null && typeof openAvgPrice !== 'undefined'
+                  ? openAvgPrice * 1.04
+                  : null;
 
-                return (
-                  <li key={item.label}>
-                    <span
-                      className="dot"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <div>
-                      <Link to={"/split-view/" + item.label }><strong>{item.label}</strong></Link>
-                      <div className="allocation-badges">
-                        <span className="metric-badge allocation-invested">
-                          {currencyFormatter(item.value)}
-                        </span>
-                        <span className="metric-badge allocation-percent">
-                          {item.percent.toFixed(1)}%
-                        </span>
-                      </div>
-                      {item.quantity !== null && item.avgPrice !== null && (
-                        <div className="allocation-badges">
-                          <span className="metric-badge allocation-qty">
-                            Qty {item.quantity}
-                          </span>
-                          <span className="metric-badge allocation-avg">
-                            Avg Price {currencyFormatter(openAvgPrice)}
-                          </span>
-                          {projectedSellPrice !== null && (
-                            <span className="metric-badge allocation-target">
-                              Sell @ +4% {currencyFormatter(projectedSellPrice)}
-                            </span>
-                          )}
-                          {openStockAges[item.label] !== undefined && (
-                            <span className="stock-age-badge">
-                              {openStockAges[item.label]}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : (
-          <p className="empty">No active stock investments yet.</p>
-        )}
-      </section>
+              if (openStockAges[item.label] == undefined) return;
+
+              return (
+                <li key={item.label}>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem', background: '#f8fafc', width: '20%' }}>
+                    <Link to={"/split-view/" + item.label}>{item.label}</Link> &nbsp;
+                  </div>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem', background: '#f8fafc', width: '40%' }}>
+                    <span>
+                      Buy: {currencyFormatter(openAvgPrice)}Sell: {currencyFormatter(projectedSellPrice)}Quantity: {item.quantity}
+                    </span>
+                  </div>
+                  <span className="stock-age-badge">
+                      {openStockAges[item.label]}
+                    </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : (
+        <p className="empty">No active stock investments yet.</p>
+      )}
+    </section>
   </>);
 
 }
-export function TodayBooked({pnlByDate}){
+export function TodayBooked({ pnlByDate }) {
   const today = getDateKey(new Date());
   const todaysold = pnlByDate[today];
 
   const history = useNavigate();
 
-  return(<>
-          <div className="metric-badges">
-            <span
-              className={`metric-badge ${
-                todaysold >= 0 ? 'balance-good' : 'balance-bad'
-              }`}
-            >
-            {todaysold}
-            </span>
-            
-          </div>
-          <button className="btn-nav" onClick={() => history("/stocks")} >
-            Stocks
-          </button>
-          <button className="btn-nav" onClick={() => history("/buy-sell-mapping")} >
-            Map
-          </button>
-          <button className="btn-nav" onClick={() => history("/monthly-pnl")} >
-            Profit
-          </button>
-    </>);
+  return (<>
+    <div className="metric-badges">
+      <span
+        className={`metric-badge ${todaysold >= 0 ? 'balance-good' : 'balance-bad'
+          }`}
+      >
+        {todaysold}
+      </span>
+
+    </div>
+    <button className="btn-nav" onClick={() => history("/stocks")} >
+      Stocks
+    </button>
+    <button className="btn-nav" onClick={() => history("/buy-sell-mapping")} >
+      Map
+    </button>
+    <button className="btn-nav" onClick={() => history("/monthly-pnl")} >
+      Profit
+    </button>
+  </>);
 }
