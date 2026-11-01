@@ -25,7 +25,9 @@ export function DashboardPage({ totals,
     totalprofit = totalprofit + pnlByDate[idx];
   }
 
-  totalprofit = totalprofit - dpchargetotal - tax;
+  let grossprofit = totalprofit;
+
+  totalprofit = totalprofit - dpchargetotal;
 
 
   return (
@@ -57,6 +59,12 @@ export function DashboardPage({ totals,
             </span>
             <span className={`metric-badge net-profit-bad`} >
               DP {currencyFormatter(dpchargetotal)}
+            </span>
+            <span
+              className={`metric-badge ${grossprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
+                }`}
+            >
+              Gross Profit {currencyFormatter(grossprofit)}
             </span>
             <span
               className={`metric-badge ${totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'

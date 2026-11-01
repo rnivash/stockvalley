@@ -489,7 +489,7 @@ export function SplitViewPage({
     </div>
     <div className='split-view'>
       {symbolFilter != 'ALL' ? (<>
-        <div>Average price of open stocks: {currencyFormatter(avgprice)}</div>
+        <div>Average price of open stocks: {currencyFormatter(avgprice)}, Total quantity:{sumofqty}</div>
        
         <div className='target-box-2'>
                     Target 1000 : {currencyFormatter((overallamount + 1000) / sumofqty)} <br />
@@ -510,7 +510,7 @@ export function SplitViewPage({
               const isExpanded = expandedBuy === item1.id;
               const currentamount = (item1.quantity * item1.price) + item1.charges;
               return (
-                <li onClick={() => { setExpandedBuy(isExpanded ? null : item1.id) }}> {idx + 1}.&nbsp;
+                <li key={item1.id} onClick={() => { setExpandedBuy(isExpanded ? null : item1.id) }}> {idx + 1}.&nbsp;
                   {formatDateFn(item1.date)} - {currencyFormatter(item1.price)} X {item1.quantity}
                   = {currencyFormatter(currentamount)}
                   <br />

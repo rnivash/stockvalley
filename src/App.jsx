@@ -101,7 +101,10 @@ export default function App() {
     return new Map(stockEntries.map(item => [item.id, item]));
   }, [stockEntries]);
 
+  
+
   const pnlByDate = useMemo(() => {
+    let so1= {};
     return manualMappings.reduce((acc, x) => {
       const buyItem = stockEntriesMap.get(x.buyId);
       const sellItem = stockEntriesMap.get(x.sellId);
@@ -112,8 +115,17 @@ export default function App() {
   
       const dateKey = getDateKey(sellItem.date);
   
-      const pnl =
+      let pnl =
         (sellItem.price * x.qty - buyItem.price * x.qty);
+
+      if(so1[x.sellId] == undefined){
+        pnl = pnl - sellItem.charges;
+        so1[x.sellId] = 0;
+      }
+      if(so1[x.buyId] == undefined){
+        pnl = pnl- buyItem.charges;
+        so1[x.buyId] = 0;
+      }
   
       acc[dateKey] = (acc[dateKey] || 0) + pnl;
   
