@@ -89,36 +89,34 @@ export function ActiveTrade({ totals,
 
     <section className="panel">
       {totals.allocationLegend.length ? (
-        <div className="allocation-wrap">
-          <ul className="allocation-legend">
-            {totals.allocationLegend.map((item) => {
-              const openAvgPrice =
-                mappingOpenAvgPrices[item.label] ?? item.avgPrice;
-              const projectedSellPrice =
-                openAvgPrice !== null && typeof openAvgPrice !== 'undefined'
-                  ? openAvgPrice * 1.04
-                  : null;
+        <ul className="allocation-legend">
+          {totals.allocationLegend.map((item) => {
+            const openAvgPrice =
+              mappingOpenAvgPrices[item.label] ?? item.avgPrice;
+            const projectedSellPrice =
+              openAvgPrice !== null && typeof openAvgPrice !== 'undefined'
+                ? openAvgPrice * 1.04
+                : null;
 
-              if (openStockAges[item.label] == undefined) return;
+            if (openStockAges[item.label] == undefined) return;
 
-              return (
-                <li key={item.label}>
-                  <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem', background: '#f8fafc', width: '20%' }}>
-                    <Link to={"/split-view/" + item.label}>{item.label}</Link> &nbsp;
-                  </div>
-                  <div style={{ border: '1px solid #e2e8f0', padding: '0.45rem', background: '#f8fafc', width: '40%' }}>
-                    <span>
-                      Buy: {currencyFormatter(openAvgPrice)}Sell: {currencyFormatter(projectedSellPrice)}Quantity: {item.quantity}
-                    </span>
-                  </div>
-                  <span className="stock-age-badge">
-                      {openStockAges[item.label]}
-                    </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+            return (
+              <li key={item.label}>
+                <div className="active-stock-symbol">
+                  <Link to={"/split-view/" + item.label}>{item.label}</Link>
+                </div>
+                <div className="active-stock-details">
+                  <span>Buy: {currencyFormatter(openAvgPrice)}</span>
+                  <span>Sell: {currencyFormatter(projectedSellPrice)}</span>
+                  <span>Quantity: {item.quantity}</span>
+                </div>
+                <span className="stock-age-badge">
+                  {openStockAges[item.label]}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       ) : (
         <p className="empty">No active stock investments yet.</p>
       )}
