@@ -489,7 +489,7 @@ export function SplitViewPage({
     </div>
     <div className='split-view'>
       {symbolFilter != 'ALL' ? (<>
-        <div>Average price of open stocks: {currencyFormatter(avgprice)}, Total quantity:{sumofqty}</div>
+        <div>Average price of open stocks:<strong> {currencyFormatter(avgprice)}</strong>, Total quantity:<strong>{sumofqty}</strong></div>
        
         <div className='target-box-2'>
                     Target 1000 : {currencyFormatter((overallamount + 1000) / sumofqty)} <br />

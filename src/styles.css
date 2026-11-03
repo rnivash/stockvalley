@@ -716,18 +716,22 @@ textarea {
 
 .allocation-legend li {
   display: grid;
-  grid-template-columns: minmax(5rem, 0.7fr) minmax(0, 2fr) auto;
+  grid-template-columns: minmax(5rem, 1.5fr) minmax(0, 2fr) auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.35rem 0;
 }
 
 .active-stock-details {
-  display: flex;
-  flex-wrap: wrap;
+  display: flow-root list-item;
   gap: 0.25rem 0.75rem;
   color: #475569;
 }
+
+.active-stock-details span{
+  display: block;
+}
+
 
 .active-stock-symbol {
   min-width: 0;
