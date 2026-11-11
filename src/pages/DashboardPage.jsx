@@ -93,6 +93,8 @@ export function ActiveTrade({ totals,
   openStockAges = {},
   mappingOpenAvgPrices = {} }) {
 
+  const history = useNavigate();
+
   return (<>
 
     <section className="panel">
@@ -111,7 +113,9 @@ export function ActiveTrade({ totals,
             return (
               <li key={item.label}>
                 <div className="active-stock-symbol">
-                  <Link to={"/split-view/" + item.label}>{item.label}</Link>
+                  <button className="plain-btn" onClick={() => history("/split-view/" + item.label)} >
+                    {item.label}
+                  </button>
                 </div>
                 {item.quantity !== null && item.avgPrice !== null && (<>
                 <div className="active-stock-details">

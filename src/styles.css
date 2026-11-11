@@ -369,6 +369,11 @@ button {
   transition: background 0.15s, box-shadow 0.15s;
 }
 
+.plain-btn {
+  background: rgb(239, 239, 239);
+  color: #000;
+}
+
 button:hover {
   background: #0d6460;
 }
