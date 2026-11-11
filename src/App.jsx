@@ -624,6 +624,11 @@ export default function App() {
             manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
           }
         />
+        <Route path="/symbol-map/:findsymbol" element={
+            <SymbolMapPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} 
+            manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
+          }
+        />        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
