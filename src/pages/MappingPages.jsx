@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CustomSelect } from '../components/Navigation';
 import { toAction, toNumber } from '../utils';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 
 export function BuySellMappingPage({
   symbolSuggestions,
@@ -176,6 +177,13 @@ export function BuySellMappingPage({
                     >
                       <div className="mapping-header-main">
                         <strong className="symbol-label">{symbol}</strong>
+                        <Link
+                            to={`/symbol-map/${encodeURIComponent(symbol)}`}
+                            className=""
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            Map
+                          </Link>
                       </div>
                       <div className="mapping-header-end">
                         {totalUnlinkedBuyQty > 0 && (

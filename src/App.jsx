@@ -23,6 +23,7 @@ import { DpChargesPage, MoneyPage, StocksPage } from './pages/EntryPages';
 import { DailyPLPage, MonthlyPnlPage, SymbolPnlPage } from './pages/PerformancePages';
 import { BuySellMappingPage, SplitViewPage } from './pages/MappingPages';
 import { DataYamlPage } from './pages/DataYamlPage';
+import { SymbolMapPage } from './pages/SymbolMapPage';
 import { calculateTotals } from './portfolio';
 
 export default function App() {
@@ -625,8 +626,9 @@ export default function App() {
           }
         />
         <Route path="/symbol-map/:findsymbol" element={
-            <SymbolMapPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} 
-            manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
+            <SymbolMapPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} manualMappings={manualMappings}
+              onAddMapping={addManualMapping} onRemoveMapping={removeManualMapping} onResetSymbol={resetSymbolMappings}
+              currency={currency} formatDate={formatDate}  />
           }
         />        
         <Route path="*" element={<Navigate to="/" replace />} />
