@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { currency, getDateKey } from '../utils';
 
+
 export function DashboardPage({ totals,
   currency: currencyFormatter,
   openStockAges = {},
@@ -142,7 +143,7 @@ export function TodayBooked({ pnlByDate }) {
         {todaysold}
       </span>):(<></>)}
     </div>
-    <button className="btn-nav" onClick={() => history("/stocks")} >
+    <button className="btn-nav" onClick={() => history("/simple-stocks")} >
       Stocks
     </button>    
     <button className="btn-nav" onClick={() => history("/monthly-pnl")} >

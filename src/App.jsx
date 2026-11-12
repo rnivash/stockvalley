@@ -12,6 +12,7 @@ import { SplitViewPage } from './pages/MappingPages';
 import { DataYamlPage } from './pages/DataYamlPage';
 import { SymbolMapPage } from './pages/SymbolMapPage';
 import { calculateTotals } from './portfolio';
+import { SimpleStockPage } from './pages/SimpleStockPage';
 
 export default function App() {
   const [cashEntries, setCashEntries] = useState(() => readStorage(CASH_KEY));
@@ -583,6 +584,10 @@ export default function App() {
             />
           }
         />
+        <Route path="/simple-stocks" element={
+            <SimpleStockPage />
+          }
+        />        
         <Route path="/symbol-pnl" element={
             <SymbolPnlPage symbolProfitLossRows={totals.symbolProfitLossRows} currency={currency}/>
           }

@@ -190,6 +190,14 @@ export function SymbolMapPage({
     ? [...stockEntries.filter((entry) => entry.symbol === effectiveSymbol)].sort(sortTransactionsByDate)
     : [];
 
+  const handleSymbolChange = (event) => {
+    const nextSymbol = event.target.value;
+    setSelectedSymbol(nextSymbol);
+    setSelectedBuyId(null);
+    setSelectedSellId(null);
+    setMapQty(0);
+  };
+
   const openTrades = useMemo(() => {
     if (!effectiveSymbol || effectiveSymbol === 'ALL') return [];
 
@@ -254,6 +262,21 @@ export function SymbolMapPage({
 
   return (
     <section className="panel">
+      <div>
+        <CustomSelect
+          id="symbol-map-filter"
+          value={selectedSymbol}
+          onChange={handleSymbolChange}
+        >
+          <option value="ALL">All Symbols</option>
+          {symbolOptions.map((symbol) => (
+            <option key={symbol} value={symbol}>
+              {symbol}
+            </option>
+          ))}
+        </CustomSelect>
+      </div>
+
       {effectiveSymbol && effectiveSymbol !== 'ALL' ? (
         <div className="mapping-summary-table">
           <div className="mapping-card">
