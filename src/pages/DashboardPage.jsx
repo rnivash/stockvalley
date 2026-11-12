@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { currency, getDateKey } from '../utils';
+import { toAction, toNumber } from '../utils';
 
 
 export function DashboardPage({ totals,
@@ -75,50 +76,79 @@ export function DashboardPage({ totals,
         </article>
       </section>
 
-      <ActiveTrade totals={totals} currency={currency} openStockAges={openStockAges}
-        mappingOpenAvgPrices={mappingOpenAvgPrices} ></ActiveTrade>
+      <ActiveTrade currency={currency} openStockAges={openStockAges}
+        mappingOpenAvgPrices={mappingOpenAvgPrices} stockEntries={stockEntries} manualMappings={manualMappings}>
+          
+        </ActiveTrade>
 
 
     </>
   );
 }
-export function ActiveTrade({ totals,
+export function ActiveTrade({ 
   currency: currencyFormatter,
   openStockAges = {},
-  mappingOpenAvgPrices = {} }) {
+  mappingOpenAvgPrices = {},
+  stockEntries,
+  manualMappings }) {
 
   const history = useNavigate();
+
+  const symbolBuys = stockEntries.filter((item) => toAction(item.action) === 'buy');
+  
+    const buyAllocated = {};
+  
+    manualMappings.forEach((link) => {
+      if (!buyAllocated[link.buyId])
+        buyAllocated[link.buyId] = 1;
+    });
+  
+    const unlinkedBuys = symbolBuys.filter((b) => {
+      const allocated = buyAllocated[b.id] || 0;
+      return allocated < 1;
+    });
+
+    const openStocks = {};
+
+     unlinkedBuys.forEach((link) => {
+      if (!openStocks[link.symbol])
+        openStocks[link.symbol] = [link.quantity, (link.price * link.quantity) + (link.charges||0)];
+      else{
+        openStocks[link.symbol][0] += link.quantity;
+        openStocks[link.symbol][1] += ((link.price * link.quantity)+ (link.charges||0));
+      }
+        
+    });
 
   return (<>
 
     <section className="panel">
-      {totals.allocationLegend.length ? (
+      {Object.keys(openStocks).length ? (
         <ul className="allocation-legend">
-          {totals.allocationLegend.map((item) => {
-            const openAvgPrice =
-              mappingOpenAvgPrices[item.label] ?? item.avgPrice;
+          {Object.entries(openStocks).map(([symbol, tuple1]) => {
+            const openAvgPrice = tuple1[1]/tuple1[0];
             const projectedSellPrice =
-              openAvgPrice !== null && typeof openAvgPrice !== 'undefined'
+              openAvgPrice !== null && typeof openAvgPrice !== 'undefined' && openAvgPrice !== 0
                 ? openAvgPrice * 1.04
                 : null;
 
-            if (openStockAges[item.label] == undefined) return;
+            if (openStockAges[symbol] == undefined) return;
 
             return (
-              <li key={item.label}>
+              <li key={symbol}>
                 <div className="active-stock-symbol">
-                  <button className="plain-btn" onClick={() => history("/split-view/" + item.label)} >
-                    {item.label}
+                  <button className="plain-btn" onClick={() => history("/split-view/" + symbol)} >
+                    {symbol}
                   </button>
                 </div>
-                {item.quantity !== null && item.avgPrice !== null && (<>
+                {tuple1[0] !== null && openAvgPrice !== null && (<>
                 <div className="active-stock-details">
                   <span>Buy: {currencyFormatter(openAvgPrice)}</span>
                   <span>Sell: {currencyFormatter(projectedSellPrice)}</span>
-                  <span>Quantity: {item.quantity}</span>
+                  <span>Quantity: {tuple1[0]}</span>
                 </div>
                 <span className="stock-age-badge">
-                  {openStockAges[item.label]}
+                  {openStockAges[symbol]}
                 </span></>)}
               </li>
             );
@@ -148,6 +178,9 @@ export function TodayBooked({ pnlByDate }) {
     </button>    
     <button className="btn-nav" onClick={() => history("/monthly-pnl")} >
       Profit
+    </button>
+    <button className="btn-nav" onClick={() => history("/daily-pnl")} >
+      Daily
     </button>
   </>);
 }

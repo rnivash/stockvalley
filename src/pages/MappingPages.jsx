@@ -37,14 +37,14 @@ export function SplitViewPage({
   let sumofcharges =0;
 
   for(let i in unlinkedBuys){
-    sumofprice += unlinkedBuys[i].price * unlinkedBuys[i].quantity;
+    sumofprice += (unlinkedBuys[i].price * unlinkedBuys[i].quantity) + (unlinkedBuys[i].charges||0);
     sumofqty += unlinkedBuys[i].quantity;
     sumofcharges += unlinkedBuys[i].charges;
   }
 
   let avgprice = sumofprice/sumofqty;
 
-  const overallamount = (sumofqty * avgprice) + sumofcharges;
+  const overallamount = (sumofqty * avgprice);
 
   return (<>
 
