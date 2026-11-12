@@ -121,7 +121,7 @@ export function DashboardPage({
           <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
         </article>
         <article className='card good'>
-         <small>Profit & Loss</small>
+         <small>Numbers</small>
           <div className="metric-badges">
             <span className={`metric-badge ${totalopeninvestdamount >= 0 ? 'balance-good' : 'balance-bad'}`}>
               Invested {currencyFormatter(totalopeninvestdamount)}

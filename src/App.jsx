@@ -2,9 +2,11 @@ import { useMemo, useState, useEffect } from 'react';
 import { dump, load } from 'js-yaml';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from './components/Navigation';
-import { CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey, 
-  MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage, saveStorage, 
-  STOCK_KEY, SYMBOL_KEY, toAction, toDate, toNumber} from './utils';
+import {
+  CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey,
+  MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage, saveStorage,
+  STOCK_KEY, SYMBOL_KEY, toAction, toDate, toNumber
+} from './utils';
 import { DashboardPage } from './pages/DashboardPage';
 import { DpChargesPage, MoneyPage, StocksPage } from './pages/EntryPages';
 import { DailyPLPage, MonthlyPnlPage, SymbolPnlPage } from './pages/PerformancePages';
@@ -104,152 +106,59 @@ export default function App() {
     return new Map(stockEntries.map(item => [item.id, item]));
   }, [stockEntries]);
 
-  
+
 
   const pnlByDate = useMemo(() => {
-    let so1= {};
+    let so1 = {};
     return manualMappings.reduce((acc, x) => {
       const buyItem = stockEntriesMap.get(x.buyId);
       const sellItem = stockEntriesMap.get(x.sellId);
-  
+
       if (!buyItem || !sellItem) {
         return acc;
       }
-  
+
       const dateKey = getDateKey(sellItem.date);
-  
+
       let pnl =
         (sellItem.price * x.qty - buyItem.price * x.qty);
 
-      if(so1[x.sellId] == undefined){
+      if (so1[x.sellId] == undefined) {
         pnl = pnl - sellItem.charges;
         so1[x.sellId] = 0;
       }
-      if(so1[x.buyId] == undefined){
-        pnl = pnl- buyItem.charges;
+      if (so1[x.buyId] == undefined) {
+        pnl = pnl - buyItem.charges;
         so1[x.buyId] = 0;
       }
-  
+
       acc[dateKey] = (acc[dateKey] || 0) + pnl;
-  
+
       return acc;
     }, {});
   }, [manualMappings, stockEntriesMap]);
 
   const dpchargetotal = useMemo(() => {
-    return dpChargeEntries.reduce((result, item) =>{
+    return dpChargeEntries.reduce((result, item) => {
       result = result + item.amount;
       return result;
     }, 0);
-  },[dpChargeEntries]);
+  }, [dpChargeEntries]);
 
   const fundtotal = useMemo(() => {
-    return cashEntries.reduce((result, item) =>{
-      if(item.type == 'withdraw')
+    return cashEntries.reduce((result, item) => {
+      if (item.type == 'withdraw')
         result[1] = result[1] + item.amount;
       else
         result[0] = result[0] + item.amount;
       return result;
-    }, [0,0]);
-  },[cashEntries]);
+    }, [0, 0]);
+  }, [cashEntries]);
 
   const totals = useMemo(
     () => calculateTotals({ cashEntries, stockEntries, dpChargeEntries }),
     [cashEntries, stockEntries, dpChargeEntries]
   );
-
-  const openStockAges = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const ages = {};
-
-    totals.allocationLegend.forEach((item) => {
-      if (item.quantity === null) return; // skip "Remaining Cash"
-      const symbol = item.label;
-
-      const symbolMappings = manualMappings.filter((m) => m.symbol === symbol);
-
-      if (symbolMappings.length > 0) {
-        // Use manual mappings: find oldest unlinked buy transaction
-        const buyAllocated = {};
-        symbolMappings.forEach((m) => {
-          buyAllocated[m.buyId] = (buyAllocated[m.buyId] || 0) + m.qty;
-        });
-
-        const openBuyDates = stockEntries
-          .filter(
-            (entry) =>
-              entry.symbol === symbol &&
-              toAction(entry.action) === 'buy' &&
-              toNumber(entry.quantity) - (buyAllocated[entry.id] || 0) > 0
-          )
-          .map((entry) => toDate(entry.date))
-          .filter(Boolean);
-
-        if (openBuyDates.length > 0) {
-          const earliestDate = openBuyDates.reduce((a, b) => (a < b ? a : b));
-          earliestDate.setHours(0, 0, 0, 0);
-          const diffMs = today - earliestDate;
-          ages[symbol] = Math.max(
-            0,
-            Math.floor(diffMs / (1000 * 60 * 60 * 24))
-          );
-        }
-      } else if (item.oldestBuyDate) {
-        // Fallback: FIFO-based oldest open lot date
-        const earliestDate = toDate(item.oldestBuyDate);
-        if (earliestDate) {
-          earliestDate.setHours(0, 0, 0, 0);
-          const diffMs = today - earliestDate;
-          ages[symbol] = Math.max(
-            0,
-            Math.floor(diffMs / (1000 * 60 * 60 * 24))
-          );
-        }
-      }
-    });
-
-    return ages;
-  }, [totals.allocationLegend, stockEntries, manualMappings]);
-
-  const mappingOpenAvgPrices = useMemo(() => {
-    const avgBySymbol = {};
-    const symbols = [
-      ...new Set(manualMappings.map((m) => m.symbol).filter(Boolean)),
-    ];
-
-    symbols.forEach((symbol) => {
-      const symbolMappings = manualMappings.filter((m) => m.symbol === symbol);
-      if (!symbolMappings.length) return;
-
-      const buyAllocated = {};
-      symbolMappings.forEach((m) => {
-        buyAllocated[m.buyId] = (buyAllocated[m.buyId] || 0) + toNumber(m.qty);
-      });
-
-      let totalRemainingQty = 0;
-      let totalRemainingCost = 0;
-
-      stockEntries.forEach((entry) => {
-        if (entry.symbol !== symbol || toAction(entry.action) !== 'buy') return;
-        const allocated = buyAllocated[entry.id] || 0;
-        const qty = toNumber(entry.quantity);
-        const remainingQty = qty - allocated;
-        if (remainingQty <= 0 || qty <= 0) return;
-
-        totalRemainingQty += remainingQty;
-        totalRemainingCost +=
-          remainingQty * toNumber(entry.price) +
-          (toNumber(entry.charges) * remainingQty) / qty;
-      });
-
-      if (totalRemainingQty > 0) {
-        avgBySymbol[symbol] = totalRemainingCost / totalRemainingQty;
-      }
-    });
-
-    return avgBySymbol;
-  }, [stockEntries, manualMappings]);
 
   const addCashEntry = (event) => {
     event.preventDefault();
@@ -476,14 +385,14 @@ export default function App() {
     const next = stockEntries.map((item) =>
       item.id === id
         ? {
-            ...item,
-            action,
-            symbol,
-            quantity,
-            price,
-            charges,
-            date: editStockForm.date || new Date().toISOString().slice(0, 10),
-          }
+          ...item,
+          action,
+          symbol,
+          quantity,
+          price,
+          charges,
+          date: editStockForm.date || new Date().toISOString().slice(0, 10),
+        }
         : item
     );
 
@@ -509,14 +418,14 @@ export default function App() {
       return prev.map((item) =>
         item.id === id
           ? {
-              ...item,
-              action,
-              symbol,
-              quantity,
-              price,
-              charges,
-              date: editStockForm.date || new Date().toISOString().slice(0, 10),
-            }
+            ...item,
+            action,
+            symbol,
+            quantity,
+            price,
+            charges,
+            date: editStockForm.date || new Date().toISOString().slice(0, 10),
+          }
           : item
       );
     });
@@ -559,11 +468,11 @@ export default function App() {
       const nextStockEntries = Array.isArray(parsed.stockEntries) ? parsed.stockEntries : [];
       const nextDpChargeEntries = Array.isArray(parsed.dpChargeEntries)
         ? parsed.dpChargeEntries.map((item) => ({
-            id: item?.id ? String(item.id) : crypto.randomUUID(),
-            amount: Math.abs(toNumber(item?.amount)),
-            note: String(item?.note || ''),
-            date: item?.date || new Date().toISOString().slice(0, 10),
-          }))
+          id: item?.id ? String(item.id) : crypto.randomUUID(),
+          amount: Math.abs(toNumber(item?.amount)),
+          note: String(item?.note || ''),
+          date: item?.date || new Date().toISOString().slice(0, 10),
+        }))
         : [];
       const nextSymbolSuggestions = Array.isArray(parsed.symbolSuggestions)
         ? normalizeSymbols(parsed.symbolSuggestions)
@@ -587,8 +496,7 @@ export default function App() {
       setYamlStatus('YAML data imported successfully.');
     } catch (error) {
       setYamlStatus(
-        `Import failed: ${
-          error instanceof Error ? error.message : 'Invalid YAML data.'
+        `Import failed: ${error instanceof Error ? error.message : 'Invalid YAML data.'
         }`
       );
     }
@@ -619,70 +527,68 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={
-            <DashboardPage totals={totals} currency={currency} openStockAges={openStockAges}
-             mappingOpenAvgPrices={mappingOpenAvgPrices} 
-             stockEntries={stockEntries} manualMappings={manualMappings}
-             pnlByDate={pnlByDate} dpchargetotal={dpchargetotal} fundtotal={fundtotal} />
-          }
+          <DashboardPage currency={currency} stockEntries={stockEntries} manualMappings={manualMappings}
+            pnlByDate={pnlByDate} dpchargetotal={dpchargetotal} fundtotal={fundtotal} />
+        }
         />
         <Route path="/money" element={
-            <MoneyPage cashForm={cashForm} setCashForm={setCashForm} addCashEntry={addCashEntry} sortedCashEntries={sortedCashEntries}
-              deleteCashEntry={deleteCashEntry} currency={currency} formatDate={formatDate}/>
-          }
+          <MoneyPage cashForm={cashForm} setCashForm={setCashForm} addCashEntry={addCashEntry} sortedCashEntries={sortedCashEntries}
+            deleteCashEntry={deleteCashEntry} currency={currency} formatDate={formatDate} />
+        }
         />
         <Route path="/dp-charges" element={
-            <DpChargesPage dpChargeForm={dpChargeForm} setDpChargeForm={setDpChargeForm} addDpChargeEntry={addDpChargeEntry}
-              dpChargeEntries={dpChargeEntries} deleteDpChargeEntry={deleteDpChargeEntry} currency={currency} formatDate={formatDate}/>
-          }
+          <DpChargesPage dpChargeForm={dpChargeForm} setDpChargeForm={setDpChargeForm} addDpChargeEntry={addDpChargeEntry}
+            dpChargeEntries={dpChargeEntries} deleteDpChargeEntry={deleteDpChargeEntry} currency={currency} formatDate={formatDate} />
+        }
         />
         <Route path="/stocks" element={
-            <StocksPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
-              setStockFilter={setStockFilter} stockFilterOptions={stockFilterOptions} filteredStockEntries={filteredStockEntries}
-              startStockEdit={startStockEdit} editingStockId={editingStockId} editStockForm={editStockForm} setEditStockForm={setEditStockForm}
-              saveStockEdit={saveStockEdit} cancelStockEdit={cancelStockEdit} toAction={toAction} toNumber={toNumber}
-              deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
-            />
-          }
+          <StocksPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
+            setStockFilter={setStockFilter} stockFilterOptions={stockFilterOptions} filteredStockEntries={filteredStockEntries}
+            startStockEdit={startStockEdit} editingStockId={editingStockId} editStockForm={editStockForm} setEditStockForm={setEditStockForm}
+            saveStockEdit={saveStockEdit} cancelStockEdit={cancelStockEdit} toAction={toAction} toNumber={toNumber}
+            deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
+          />
+        }
         />
         <Route path="/simple-stocks" element={
-            <SimpleStockPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
-              setStockFilter={setStockFilter} stockFilterOptions={sessionStockFilterOptions} filteredStockEntries={filteredSessionStockEntries}
-              startStockEdit={startStockEdit} editingStockId={editingStockId} editStockForm={editStockForm} setEditStockForm={setEditStockForm}
-              saveStockEdit={saveStockEdit} cancelStockEdit={cancelStockEdit} toAction={toAction} toNumber={toNumber}
-              deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
-            />
-          }
-        />        
+          <SimpleStockPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
+            setStockFilter={setStockFilter} stockFilterOptions={sessionStockFilterOptions} filteredStockEntries={filteredSessionStockEntries}
+            startStockEdit={startStockEdit} editingStockId={editingStockId} editStockForm={editStockForm} setEditStockForm={setEditStockForm}
+            saveStockEdit={saveStockEdit} cancelStockEdit={cancelStockEdit} toAction={toAction} toNumber={toNumber}
+            deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
+          />
+        }
+        />
         <Route path="/symbol-pnl" element={
-            <SymbolPnlPage symbolProfitLossRows={totals.symbolProfitLossRows} currency={currency}/>
-          }
+          <SymbolPnlPage symbolProfitLossRows={totals.symbolProfitLossRows} currency={currency} />
+        }
         />
         <Route path="/monthly-pnl" element={
-            <MonthlyPnlPage currency={currency} pnlByDate={pnlByDate}/>
-          }
+          <MonthlyPnlPage currency={currency} pnlByDate={pnlByDate} />
+        }
         />
         <Route path="/daily-pnl" element={
-            <DailyPLPage currency={currency} formatDate={formatDate} pnlByDate={pnlByDate} />
-          }
+          <DailyPLPage currency={currency} formatDate={formatDate} pnlByDate={pnlByDate} />
+        }
         />
-        
+
         <Route path="/data-yaml" element={
-            <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
-              exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
-          }
+          <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
+            exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
+        }
         />
 
         <Route path="/split-view/:findsymbol" element={
-            <SplitViewPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} 
+          <SplitViewPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries}
             manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
-          }
+        }
         />
         <Route path="/symbol-map/:findsymbol" element={
-            <SymbolMapPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} manualMappings={manualMappings}
-              onAddMapping={addManualMapping} onRemoveMapping={removeManualMapping} onResetSymbol={resetSymbolMappings}
-              currency={currency} formatDate={formatDate}  />
-          }
-        />        
+          <SymbolMapPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} manualMappings={manualMappings}
+            onAddMapping={addManualMapping} onRemoveMapping={removeManualMapping} onResetSymbol={resetSymbolMappings}
+            currency={currency} formatDate={formatDate} />
+        }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
