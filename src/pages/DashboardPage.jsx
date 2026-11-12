@@ -155,10 +155,7 @@ export function TodayBooked({ pnlByDate }) {
     </div>
     <button className="btn-nav" onClick={() => history("/stocks")} >
       Stocks
-    </button>
-    <button className="btn-nav" onClick={() => history("/buy-sell-mapping")} >
-      Map
-    </button>
+    </button>    
     <button className="btn-nav" onClick={() => history("/monthly-pnl")} >
       Profit
     </button>

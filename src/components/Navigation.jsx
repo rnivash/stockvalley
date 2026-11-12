@@ -143,11 +143,7 @@ export function AppNav({ inHero = false }) {
           <NavLink to="/daily-pnl"className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Daily P/L</span>
             <small className="nav-hint">Day-wise profit breakdown</small>
-          </NavLink>
-          <NavLink to="/buy-sell-mapping" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <span className="nav-label">Buy-Sell Mapping</span>
-            <small className="nav-hint">Match buys and sells</small>
-          </NavLink>
+          </NavLink>          
           <NavLink to="/data-yaml" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Data YAML</span>
             <small className="nav-hint">Import or export all data</small>

@@ -2,26 +2,13 @@ import { useMemo, useState } from 'react';
 import { dump, load } from 'js-yaml';
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { AppNav } from './components/Navigation';
-import {
-  CASH_KEY,
-  currency,
-  DP_CHARGES_KEY,
-  formatDate,
-  getDateKey,
-  MANUAL_MAPPINGS_KEY,
-  normalizeSymbols,
-  readStorage,
-  saveStorage,
-  STOCK_KEY,
-  SYMBOL_KEY,
-  toAction,
-  toDate,
-  toNumber,
-} from './utils';
+import { CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey, 
+  MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage, saveStorage, 
+  STOCK_KEY, SYMBOL_KEY, toAction, toDate, toNumber} from './utils';
 import { DashboardPage } from './pages/DashboardPage';
 import { DpChargesPage, MoneyPage, StocksPage } from './pages/EntryPages';
 import { DailyPLPage, MonthlyPnlPage, SymbolPnlPage } from './pages/PerformancePages';
-import { BuySellMappingPage, SplitViewPage } from './pages/MappingPages';
+import { SplitViewPage } from './pages/MappingPages';
 import { DataYamlPage } from './pages/DataYamlPage';
 import { SymbolMapPage } from './pages/SymbolMapPage';
 import { calculateTotals } from './portfolio';
@@ -608,12 +595,7 @@ export default function App() {
             <DailyPLPage currency={currency} formatDate={formatDate} pnlByDate={pnlByDate} />
           }
         />
-        <Route path="/buy-sell-mapping" element={
-            <BuySellMappingPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} manualMappings={manualMappings}
-              onAddMapping={addManualMapping} onRemoveMapping={removeManualMapping} onResetSymbol={resetSymbolMappings}
-              currency={currency} formatDate={formatDate} />
-          }
-        />
+        
         <Route path="/data-yaml" element={
             <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
               exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
