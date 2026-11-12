@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { dump, load } from 'js-yaml';
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from './components/Navigation';
 import { CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey, 
   MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage, saveStorage, 
@@ -15,6 +15,7 @@ import { calculateTotals } from './portfolio';
 import { SimpleStockPage } from './pages/SimpleStockPage';
 
 export default function App() {
+  const location = useLocation();
   const [cashEntries, setCashEntries] = useState(() => readStorage(CASH_KEY));
   const [stockEntries, setStockEntries] = useState(() => readStorage(STOCK_KEY));
   const [dpChargeEntries, setDpChargeEntries] = useState(() => readStorage(DP_CHARGES_KEY));
@@ -23,6 +24,13 @@ export default function App() {
     if (saved.length) return saved;
     return normalizeSymbols(readStorage(STOCK_KEY).map((item) => item.symbol));
   });
+  const [sessionDisplayStockEntries, setSessionDisplayStockEntries] = useState([]);
+
+  useEffect(() => {
+    if (location.pathname === '/simple-stocks') {
+      setSessionDisplayStockEntries([]);
+    }
+  }, [location.pathname]);
 
   const [cashForm, setCashForm] = useState({
     type: 'deposit',
@@ -59,6 +67,12 @@ export default function App() {
   const [yamlText, setYamlText] = useState('');
   const [yamlStatus, setYamlStatus] = useState('');
   const [manualMappings, setManualMappings] = useState(() => readStorage(MANUAL_MAPPINGS_KEY));
+
+  const sessionStockFilterOptions = [
+    ...new Set(sessionDisplayStockEntries.map((item) => item.symbol)),
+  ].sort();
+
+  const filteredSessionStockEntries = sessionDisplayStockEntries;
 
   const activeSymbolInput = editingStockId
     ? editStockForm.symbol
@@ -340,6 +354,19 @@ export default function App() {
     ];
 
     setStockEntries(next);
+    setSessionDisplayStockEntries((prev) => [
+      {
+        id: next[0].id,
+        action: next[0].action,
+        symbol: next[0].symbol,
+        quantity: next[0].quantity,
+        price: next[0].price,
+        charges: next[0].charges,
+        date: next[0].date,
+        createdAt: next[0].createdAt,
+      },
+      ...prev,
+    ]);
     saveStorage(STOCK_KEY, next);
     rememberSymbol(symbol);
     setStockForm({
@@ -355,6 +382,7 @@ export default function App() {
   const deleteStockEntry = (id) => {
     const next = stockEntries.filter((item) => item.id !== id);
     setStockEntries(next);
+    setSessionDisplayStockEntries((prev) => prev.filter((item) => item.id !== id));
     saveStorage(STOCK_KEY, next);
   };
 
@@ -460,6 +488,38 @@ export default function App() {
     );
 
     setStockEntries(next);
+    setSessionDisplayStockEntries((prev) => {
+      const current = prev.find((item) => item.id === id);
+      if (!current) {
+        return [
+          {
+            id,
+            action,
+            symbol,
+            quantity,
+            price,
+            charges,
+            date: editStockForm.date || new Date().toISOString().slice(0, 10),
+            createdAt: Date.now(),
+          },
+          ...prev,
+        ];
+      }
+
+      return prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              action,
+              symbol,
+              quantity,
+              price,
+              charges,
+              date: editStockForm.date || new Date().toISOString().slice(0, 10),
+            }
+          : item
+      );
+    });
     saveStorage(STOCK_KEY, next);
     rememberSymbol(symbol);
     cancelStockEdit();
@@ -585,7 +645,12 @@ export default function App() {
           }
         />
         <Route path="/simple-stocks" element={
-            <SimpleStockPage />
+            <SimpleStockPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
+              setStockFilter={setStockFilter} stockFilterOptions={sessionStockFilterOptions} filteredStockEntries={filteredSessionStockEntries}
+              startStockEdit={startStockEdit} editingStockId={editingStockId} editStockForm={editStockForm} setEditStockForm={setEditStockForm}
+              saveStockEdit={saveStockEdit} cancelStockEdit={cancelStockEdit} toAction={toAction} toNumber={toNumber}
+              deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
+            />
           }
         />        
         <Route path="/symbol-pnl" element={
