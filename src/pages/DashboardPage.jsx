@@ -60,19 +60,12 @@ export function DashboardPage({ totals,
             <span className={`metric-badge net-profit-bad`} >
               DP {currencyFormatter(dpchargetotal)}
             </span>
-            <span
-              className={`metric-badge ${grossprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
-                }`}
-            >
+            <span className={`metric-badge ${grossprofit >= 0 ? 'net-profit-good' : 'net-profit-bad' }`}>
               Gross Profit {currencyFormatter(grossprofit)}
             </span>
-            <span
-              className={`metric-badge ${totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'
-                }`}
-            >
+            <span className={`metric-badge ${totalprofit >= 0 ? 'net-profit-good' : 'net-profit-bad'}`}>
               Net Profit {currencyFormatter(totalprofit)}
             </span>
-
           </div>
         </article>
         <article className='card good'>
@@ -145,13 +138,9 @@ export function TodayBooked({ pnlByDate }) {
 
   return (<>
     <div className="metric-badges">
-      <span
-        className={`metric-badge ${todaysold >= 0 ? 'balance-good' : 'balance-bad'
-          }`}
-      >
+      {todaysold !== undefined? (<span className={`metric-badge ${todaysold >= 0 ? 'balance-good' : 'balance-bad'}`}>
         {todaysold}
-      </span>
-
+      </span>):(<></>)}
     </div>
     <button className="btn-nav" onClick={() => history("/stocks")} >
       Stocks
