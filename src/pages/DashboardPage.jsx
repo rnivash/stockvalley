@@ -77,7 +77,11 @@ export function DashboardPage({
       totalopeninvestdamount += totalAmount;
     }
 
-    const prjectedBalnceAmount = (fundtotal[0] - fundtotal[1])+ totalprofit - totalopeninvestdamount;
+    const NetDeposit = fundtotal[0] - fundtotal[1];
+
+    const DepositAndProfit = NetDeposit + totalprofit;
+
+    const prjectedBalnceAmount = DepositAndProfit - totalopeninvestdamount;
 
 
   return (
@@ -93,7 +97,7 @@ export function DashboardPage({
               Withdrawn {currencyFormatter(fundtotal[1])}
             </span>
             <span className="metric-badge net-funds">
-              Balance {currencyFormatter(fundtotal[0] - fundtotal[1])}
+              Balance {currencyFormatter(NetDeposit)}
             </span>
             
           </div>
@@ -123,6 +127,9 @@ export function DashboardPage({
         <article className='card good'>
          <small>Numbers</small>
           <div className="metric-badges">
+            <span className={`metric-badge ${DepositAndProfit >= 0 ? 'balance-good' : 'balance-bad'}`}>
+              Own {currencyFormatter(DepositAndProfit)}
+            </span>
             <span className={`metric-badge ${totalopeninvestdamount >= 0 ? 'balance-good' : 'balance-bad'}`}>
               Invested {currencyFormatter(totalopeninvestdamount)}
             </span>
