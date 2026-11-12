@@ -2,10 +2,22 @@ import { Link, useNavigate } from 'react-router-dom';
 import { currency, getDateKey } from '../utils';
 import { toAction, toNumber } from '../utils';
 
+const formatDaysAgo = (value) => {
+  if (!value) return '0';
 
-export function DashboardPage({ totals,
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '0';
+
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return '1';
+  if (diffDays === 1) return '1';
+  return `${diffDays}`;
+};
+
+export function DashboardPage({ 
   currency: currencyFormatter,
-  openStockAges = {},
   stockEntries,
   manualMappings,
   pnlByDate,
@@ -65,6 +77,8 @@ export function DashboardPage({ totals,
       totalopeninvestdamount += totalAmount;
     }
 
+    const prjectedBalnceAmount = (fundtotal[0] - fundtotal[1])+ totalprofit - totalopeninvestdamount;
+
 
   return (
     <>
@@ -112,15 +126,14 @@ export function DashboardPage({ totals,
             <span className={`metric-badge ${totalopeninvestdamount >= 0 ? 'balance-good' : 'balance-bad'}`}>
               Invested {currencyFormatter(totalopeninvestdamount)}
             </span>
-            <span className={`metric-badge ${totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad'}`}>
-              Trade Balance {currencyFormatter(totals.projectedAmount)}
+            <span className={`metric-badge ${prjectedBalnceAmount>= 0 ? 'balance-good' : 'balance-bad'}`}>
+              Trade Balance {currencyFormatter(prjectedBalnceAmount)}
             </span>
           </div>
         </article>
       </section>
 
-      <ActiveTrade currency={currency} openStockAges={openStockAges}
-        openStocks={openStocks} >
+      <ActiveTrade currency={currency} openStocks={openStocks} >
       </ActiveTrade>
 
 
@@ -129,10 +142,7 @@ export function DashboardPage({ totals,
 }
 export function ActiveTrade({ 
   currency: currencyFormatter,
-  openStockAges = {},
-  openStocks = {}, 
-  stockEntries,
-  manualMappings }) {
+  openStocks = {}}) {
 
   const history = useNavigate();
 
@@ -149,8 +159,6 @@ export function ActiveTrade({
                 ? openAvgPrice * 1.04
                 : null;
 
-            if (openStockAges[symbol] == undefined) return;
-
             return (
               <li key={symbol}>
                 <div className="active-stock-symbol">
@@ -165,7 +173,7 @@ export function ActiveTrade({
                   <span>Quantity: {quantity}</span>
                 </div>
                 <span className="stock-age-badge">
-                  {openStockAges[symbol]}, {date}
+                  {formatDaysAgo(date)}
                 </span></>)}
               </li>
             );
