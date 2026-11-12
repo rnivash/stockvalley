@@ -369,6 +369,12 @@ button {
   transition: background 0.15s, box-shadow 0.15s;
 }
 
+.sv-btn{  
+  width: 10%;
+  border: none;
+  cursor: pointer;
+}
+
 .plain-btn {
   background: rgb(239, 239, 239);
   color: #000;

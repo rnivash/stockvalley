@@ -241,6 +241,17 @@ export function SymbolMapPage({
       return String(a.buyId).localeCompare(String(b.buyId));
     });
 
+  const totalMappedPL = mappedRows.reduce((total, link) => {
+    const buyCost =
+      link.qty * link.buyTx.price +
+      (link.buyTx.charges * link.qty) / link.buyTx.quantity;
+    const sellValue =
+      link.qty * link.sellTx.price -
+      (link.sellTx.charges * link.qty) / link.sellTx.quantity;
+
+    return total + (sellValue - buyCost);
+  }, 0);
+
   return (
     <section className="panel">
       {effectiveSymbol && effectiveSymbol !== 'ALL' ? (
@@ -252,8 +263,10 @@ export function SymbolMapPage({
                   <strong className="symbol-label">{effectiveSymbol}</strong>
                 </div>
               </div>
-              <div className="mapping-header-end">
-                <strong className="cell-good">{mappedRows.length} mapped</strong>
+              <div className="mapping-header-end">                
+                <strong className={totalMappedPL >= 0 ? 'cell-good' : 'cell-bad'}>
+                  {currencyFormatter(totalMappedPL)}
+                </strong>
               </div>
             </div>
 

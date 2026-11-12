@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CustomSelect } from '../components/Navigation';
 import { toAction, toNumber } from '../utils';
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 
 export function SplitViewPage({ 
@@ -11,7 +11,8 @@ export function SplitViewPage({
   manualMappings,
   currency: currencyFormatter,
   formatDate: formatDateFn}) {
-
+    
+  const history = useNavigate();
   const { findsymbol } = useParams();
   const [symbolFilter, setSymbolFilter] = useState(findsymbol ? findsymbol : 'ALL');
   const [expandedBuy, setExpandedBuy] = useState(null);
@@ -64,7 +65,9 @@ export function SplitViewPage({
     <div className='split-view'>
       {symbolFilter != 'ALL' ? (<>
         <div>Average price of open stocks:<strong> {currencyFormatter(avgprice)}</strong>, Total quantity:<strong>{sumofqty}</strong></div>
-       
+        <div>
+          Map: <button className='plain-btn sv-btn' onClick={() => history("/symbol-map/" + findsymbol)} >{findsymbol}</button>
+        </div>
         <div className='target-box-2'>
                     Target 1000 : {currencyFormatter((overallamount + 1000) / sumofqty)} <br />
                     Target 1500 : {currencyFormatter((overallamount + 1500) / sumofqty)} <br />
