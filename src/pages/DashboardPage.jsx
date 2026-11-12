@@ -6,7 +6,6 @@ import { toAction, toNumber } from '../utils';
 export function DashboardPage({ totals,
   currency: currencyFormatter,
   openStockAges = {},
-  mappingOpenAvgPrices = {},
   stockEntries,
   manualMappings,
   pnlByDate,
@@ -31,6 +30,41 @@ export function DashboardPage({ totals,
 
   totalprofit = totalprofit - dpchargetotal;
 
+  const symbolBuys = stockEntries.filter((item) => toAction(item.action) === 'buy');
+  
+    const buyAllocated = {};
+  
+    manualMappings.forEach((link) => {
+      if (!buyAllocated[link.buyId])
+        buyAllocated[link.buyId] = 1;
+    });
+  
+    const unlinkedBuys = symbolBuys.filter((b) => {
+      const allocated = buyAllocated[b.id] || 0;
+      return allocated < 1;
+    });
+
+    const openStocks = {};
+
+     unlinkedBuys.forEach((link) => {
+      if (!openStocks[link.symbol])
+        openStocks[link.symbol] = [link.quantity, (link.price * link.quantity) + (link.charges||0), link.date];
+      else{
+        openStocks[link.symbol][0] += link.quantity;
+        openStocks[link.symbol][1] += ((link.price * link.quantity)+ (link.charges||0));
+        openStocks[link.symbol][2] = openStocks[link.symbol][2] > link.date ? openStocks[link.symbol][2] : link.date;
+      }
+        
+    });
+
+    // write for loop using openStocks
+
+    let totalopeninvestdamount = 0;
+
+    for (const [symbol, [quantity, totalAmount]] of Object.entries(openStocks)) {
+      totalopeninvestdamount += totalAmount;
+    }
+
 
   return (
     <>
@@ -47,9 +81,7 @@ export function DashboardPage({ totals,
             <span className="metric-badge net-funds">
               Balance {currencyFormatter(fundtotal[0] - fundtotal[1])}
             </span>
-            <span className={`metric-badge ${totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad'}`}>
-              Trade Balance {currencyFormatter(totals.projectedAmount)}
-            </span>
+            
           </div>
         </article>
 
@@ -74,12 +106,22 @@ export function DashboardPage({ totals,
           <small>Today</small>
           <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
         </article>
+        <article className='card good'>
+         <small>Profit & Loss</small>
+          <div className="metric-badges">
+            <span className={`metric-badge ${totalopeninvestdamount >= 0 ? 'balance-good' : 'balance-bad'}`}>
+              Invested {currencyFormatter(totalopeninvestdamount)}
+            </span>
+            <span className={`metric-badge ${totals.projectedAmount >= 0 ? 'balance-good' : 'balance-bad'}`}>
+              Trade Balance {currencyFormatter(totals.projectedAmount)}
+            </span>
+          </div>
+        </article>
       </section>
 
       <ActiveTrade currency={currency} openStockAges={openStockAges}
-        mappingOpenAvgPrices={mappingOpenAvgPrices} stockEntries={stockEntries} manualMappings={manualMappings}>
-          
-        </ActiveTrade>
+        openStocks={openStocks} >
+      </ActiveTrade>
 
 
     </>
@@ -88,45 +130,20 @@ export function DashboardPage({ totals,
 export function ActiveTrade({ 
   currency: currencyFormatter,
   openStockAges = {},
-  mappingOpenAvgPrices = {},
+  openStocks = {}, 
   stockEntries,
   manualMappings }) {
 
   const history = useNavigate();
 
-  const symbolBuys = stockEntries.filter((item) => toAction(item.action) === 'buy');
-  
-    const buyAllocated = {};
-  
-    manualMappings.forEach((link) => {
-      if (!buyAllocated[link.buyId])
-        buyAllocated[link.buyId] = 1;
-    });
-  
-    const unlinkedBuys = symbolBuys.filter((b) => {
-      const allocated = buyAllocated[b.id] || 0;
-      return allocated < 1;
-    });
-
-    const openStocks = {};
-
-     unlinkedBuys.forEach((link) => {
-      if (!openStocks[link.symbol])
-        openStocks[link.symbol] = [link.quantity, (link.price * link.quantity) + (link.charges||0)];
-      else{
-        openStocks[link.symbol][0] += link.quantity;
-        openStocks[link.symbol][1] += ((link.price * link.quantity)+ (link.charges||0));
-      }
-        
-    });
 
   return (<>
 
     <section className="panel">
       {Object.keys(openStocks).length ? (
         <ul className="allocation-legend">
-          {Object.entries(openStocks).map(([symbol, tuple1]) => {
-            const openAvgPrice = tuple1[1]/tuple1[0];
+          {Object.entries(openStocks).map(([symbol, [quantity, totalAmount, date]]) => {
+            const openAvgPrice = totalAmount / quantity;
             const projectedSellPrice =
               openAvgPrice !== null && typeof openAvgPrice !== 'undefined' && openAvgPrice !== 0
                 ? openAvgPrice * 1.04
@@ -141,14 +158,14 @@ export function ActiveTrade({
                     {symbol}
                   </button>
                 </div>
-                {tuple1[0] !== null && openAvgPrice !== null && (<>
+                {quantity !== null && openAvgPrice !== null && (<>
                 <div className="active-stock-details">
                   <span>Buy: {currencyFormatter(openAvgPrice)}</span>
                   <span>Sell: {currencyFormatter(projectedSellPrice)}</span>
-                  <span>Quantity: {tuple1[0]}</span>
+                  <span>Quantity: {quantity}</span>
                 </div>
                 <span className="stock-age-badge">
-                  {openStockAges[symbol]}
+                  {openStockAges[symbol]}, {date}
                 </span></>)}
               </li>
             );
