@@ -131,11 +131,7 @@ export function AppNav({ inHero = false }) {
           <NavLink to="/dp-charges" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">DP Charges</span>
             <small className="nav-hint">Add delivery charges</small>
-          </NavLink>
-          <NavLink to="/symbol-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <span className="nav-label">Symbol P/L</span>
-            <small className="nav-hint">Closed qty averages</small>
-          </NavLink>
+          </NavLink>          
           <NavLink to="/monthly-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
             <span className="nav-label">Monthly P/L</span>
             <small className="nav-hint">Profit and gain % trend</small>

@@ -1,38 +1,5 @@
 import { formatMonthLabel } from '../utils';
 
-export function SymbolPnlPage({ symbolProfitLossRows, currency: currencyFormatter }) {
-  return (
-    <section className="panel">
-      <h2>Profit / Loss By Symbol</h2>
-      {symbolProfitLossRows.length ? (
-        <div className="symbol-pnl-grid">
-          {symbolProfitLossRows.map((item) => (
-            <article key={item.symbol} className="symbol-pnl-card">
-              <div className="symbol-pnl-head">
-                <strong>{item.symbol}</strong>
-                <strong
-                  className={item.difference >= 0 ? 'cell-good' : 'cell-bad'}
-                >
-                  {currencyFormatter(item.difference)}
-                </strong>
-              </div>
-              <div className="symbol-pnl-meta">
-                <p>
-                  <span>Charges</span>
-                  <strong>{currencyFormatter(item.charges)}</strong>
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="empty">
-          No closed trades yet to calculate symbol-wise profit/loss.
-        </p>
-      )}
-    </section>
-  );
-}
 export function MonthlyPnlPage({
   currency: currencyFormatter,
   pnlByDate

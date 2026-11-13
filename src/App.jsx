@@ -9,11 +9,10 @@ import {
 } from './utils';
 import { DashboardPage } from './pages/DashboardPage';
 import { DpChargesPage, MoneyPage, StocksPage } from './pages/EntryPages';
-import { DailyPLPage, MonthlyPnlPage, SymbolPnlPage } from './pages/PerformancePages';
+import { DailyPLPage, MonthlyPnlPage } from './pages/PerformancePages';
 import { SplitViewPage } from './pages/MappingPages';
 import { DataYamlPage } from './pages/DataYamlPage';
 import { SymbolMapPage } from './pages/SymbolMapPage';
-import { calculateTotals } from './portfolio';
 import { SimpleStockPage } from './pages/SimpleStockPage';
 
 export default function App() {
@@ -155,11 +154,6 @@ export default function App() {
     }, [0, 0]);
   }, [cashEntries]);
 
-  const totals = useMemo(
-    () => calculateTotals({ cashEntries, stockEntries, dpChargeEntries }),
-    [cashEntries, stockEntries, dpChargeEntries]
-  );
-
   const addCashEntry = (event) => {
     event.preventDefault();
     const amount = toNumber(cashForm.amount);
@@ -242,11 +236,6 @@ export default function App() {
     const symbol = stockForm.symbol.trim().toUpperCase();
     if (!symbol || quantity <= 0 || price <= 0 || charges < 0) return;
 
-    const availableQty = toNumber(totals.holdings[symbol]);
-    if (stockForm.action === 'sell' && quantity > availableQty) {
-      window.alert(`Not enough quantity to sell. Available: ${availableQty}`);
-      return;
-    }
 
     const next = [
       {
@@ -558,11 +547,7 @@ export default function App() {
             deleteStockEntry={deleteStockEntry} currency={currency} formatDate={formatDate} filteredSymbolSuggestions={filteredSymbolSuggestions}
           />
         }
-        />
-        <Route path="/symbol-pnl" element={
-          <SymbolPnlPage symbolProfitLossRows={totals.symbolProfitLossRows} currency={currency} />
-        }
-        />
+        />        
         <Route path="/monthly-pnl" element={
           <MonthlyPnlPage currency={currency} pnlByDate={pnlByDate} />
         }
