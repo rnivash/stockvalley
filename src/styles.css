@@ -370,9 +370,13 @@ button {
 }
 
 .sv-btn{  
-  width: 10%;
   border: none;
   cursor: pointer;
+}
+
+.split-buy-item{
+  border: 1px solid silver;
+  background-color: #fcd34d;
 }
 
 .plain-btn {
@@ -1196,36 +1200,35 @@ textarea {
 
 .split-view ul li{
   padding: 5px;
-  background-color: #ffffff;
+  background-color: #E3F2FD;
   margin-top: 5px;
   cursor: pointer;
+  border: 1px solid #0f766e;
+  border-radius: 5px;
+}
+
+.split-view .target-box, .split-view .target-box-2, .split-view .target-box-3{
+  color: #ffffff;
+  padding: 5px;
+  font-weight: 500;
+  margin: 5px 0 5px 0;
+  border: 5px solid #ffffff;
+  border-radius: 10px;
 }
 
 .split-view .target-box{
-  background-color: #b91c1c;
-  color: #ffffff;
-  display:inline-block;
-  padding: 5px;
-  font-weight: 500;
-  margin: 10px 0 10px 0;
+  background-color: #F6E2E9;
+  color: #AB03A9;
 }
 
 .split-view .target-box-2{
-  background-color: #16a34a;
-  color: #ffffff;
-  display:inline-block;
-  padding: 5px;
-  font-weight: 500;
-  margin: 10px 0 10px 0;
+  background-color: #36415A;
+  color: #B7D894;
 }
 
 .split-view .target-box-3{
-  background-color: #1e293b;
-  color: #ffffff;
-  display:inline-block;
-  padding: 5px;
-  font-weight: 500;
-  margin: 10px 0 10px 5px;
+  background-color: #36415A;
+  color: #B7D894;
 }
 
 .btn-nav{

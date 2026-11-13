@@ -46,6 +46,8 @@ export function SplitViewPage({
 
   const overallamount = (sumofqty * avgprice);
 
+  let hike = 4;
+
   return (<>
 
     <div>
@@ -65,9 +67,7 @@ export function SplitViewPage({
     <div className='split-view'>
       {symbolFilter != 'ALL' ? (<>
         <div>Average price of open stocks:<strong> {currencyFormatter(avgprice)}</strong>, Total quantity:<strong>{sumofqty}</strong></div>
-        <div>
-          Map: <button className='plain-btn sv-btn' onClick={() => history("/symbol-map/" + findsymbol)} >{findsymbol}</button>
-        </div>
+         
         <div className='target-box-2'>
                     Target 1000 : {currencyFormatter((overallamount + 1000) / sumofqty)} <br />
                     Target 1500 : {currencyFormatter((overallamount + 1500) / sumofqty)} <br />
@@ -75,10 +75,10 @@ export function SplitViewPage({
                     Target 2500 : {currencyFormatter((overallamount + 2500) / sumofqty)}<br />
         </div>
         <div className='target-box-3'>
-                    Target 5% {currencyFormatter(((overallamount * 5)/ 100))}: {currencyFormatter((overallamount + ((overallamount * 5)/ 100)) / sumofqty)} <br />
-                    Target 6% {currencyFormatter(((overallamount * 6)/ 100))}: {currencyFormatter((overallamount + ((overallamount * 6)/ 100)) / sumofqty)} <br />
-                    Target 7% {currencyFormatter(((overallamount * 7)/ 100))}: {currencyFormatter((overallamount + ((overallamount * 7)/ 100)) / sumofqty)}<br />
-                    Target 8% {currencyFormatter(((overallamount * 8)/ 100))}: {currencyFormatter((overallamount + ((overallamount * 8)/ 100)) / sumofqty)}<br />
+                    Target {hike}% {currencyFormatter(((overallamount * hike)/ 100))}: {currencyFormatter((overallamount + ((overallamount * hike)/ 100)) / sumofqty)} <br />
+                    Target {++hike}% {currencyFormatter(((overallamount * hike)/ 100))}: {currencyFormatter((overallamount + ((overallamount * hike)/ 100)) / sumofqty)} <br />
+                    Target {++hike}% {currencyFormatter(((overallamount * hike)/ 100))}: {currencyFormatter((overallamount + ((overallamount * hike)/ 100)) / sumofqty)}<br />
+                    Target {++hike}% {currencyFormatter(((overallamount * hike)/ 100))}: {currencyFormatter((overallamount + ((overallamount * hike)/ 100)) / sumofqty)}<br />
         </div>
         <ul>
           {
@@ -89,7 +89,6 @@ export function SplitViewPage({
               return (
                 <li key={item1.id} onClick={() => { setExpandedBuy(isExpanded ? null : item1.id) }}> {idx + 1}.&nbsp;
                   {formatDateFn(item1.date)} - {currencyFormatter(item1.price)} X {item1.quantity}
-                  = {currencyFormatter(currentamount)}
                   <br />
                   {isExpanded && (<div className='target-box'>
                     Target 500 : {currencyFormatter((currentamount + 500) / item1.quantity)} <br />

@@ -226,6 +226,7 @@ export function ActiveTrade({
                   {sortBy === 'Price' ? currencyFormatter(totalAmount) : formatDaysAgo(date)}
                 </p>
                 </div>
+                <div><button  className="plain-btn" onClick={() => history("/symbol-map/" + symbol)}>Map</button></div>
                </>)}
               </li>
             );
