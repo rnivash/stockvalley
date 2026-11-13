@@ -736,7 +736,6 @@ textarea {
 .active-stock-details {
   display: flow-root list-item;
   gap: 0.25rem 0.75rem;
-  color: #475569;
 }
 
 .active-stock-details span{

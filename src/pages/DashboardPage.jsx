@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { currency, getDateKey } from '../utils';
 import { toAction, toNumber } from '../utils';
+import { useMemo, useState } from 'react';
 
 const formatDaysAgo = (value) => {
   if (!value) return '0';
@@ -23,6 +24,8 @@ export function DashboardPage({
   pnlByDate,
   dpchargetotal,
   fundtotal }) {
+
+  
 
   let tax = 0;
 
@@ -68,7 +71,7 @@ export function DashboardPage({
       }
         
     });
-
+   
     // write for loop using openStocks
 
     let totalopeninvestdamount = 0;
@@ -149,17 +152,58 @@ export function DashboardPage({
 }
 export function ActiveTrade({ 
   currency: currencyFormatter,
-  openStocks = {}}) {
+  openStocks = {}
+}) {
 
   const history = useNavigate();
+  const [sortBy, setSortBy] = useState('Price');
+
+  const orderedStocks = useMemo(() => {
+    const entries = Object.entries(openStocks);
+
+    if (sortBy === 'Price') {
+      return [...entries].sort(([, [, totalPriceA]], [, [, totalPriceB]]) =>
+        totalPriceB - totalPriceA
+      );
+    }
+
+    return [...entries].sort(([, [, , dateA]], [, [, , dateB]]) =>
+      new Date(dateA) - new Date(dateB)
+    );
+  }, [openStocks, sortBy]);
+
+  const handleOpenStocksSort = (event) => {
+    setSortBy(event.target.value);
+  };
 
 
   return (<>
 
     <section className="panel">
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+        <label>
+          <input
+            type="radio"
+            name="openStocksSort"
+            value="Price"
+            defaultChecked
+            onClick={handleOpenStocksSort}
+          />
+          Price
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="openStocksSort"
+            value="Time"
+            onClick={handleOpenStocksSort}
+          />
+          Time
+        </label>
+      </div>
       {Object.keys(openStocks).length ? (
         <ul className="allocation-legend">
-          {Object.entries(openStocks).map(([symbol, [quantity, totalAmount, date]]) => {
+          {orderedStocks.map(([symbol, [quantity, totalAmount, date]]) => {
             const openAvgPrice = totalAmount / quantity;
             const projectedSellPrice =
               openAvgPrice !== null && typeof openAvgPrice !== 'undefined' && openAvgPrice !== 0
@@ -178,10 +222,11 @@ export function ActiveTrade({
                   <span>Buy: {currencyFormatter(openAvgPrice)}</span>
                   <span>Sell: {currencyFormatter(projectedSellPrice)}</span>
                   <span>Quantity: {quantity}</span>
+                   <p className="stock-age-badge">
+                  {sortBy === 'Price' ? currencyFormatter(totalAmount) : formatDaysAgo(date)}
+                </p>
                 </div>
-                <span className="stock-age-badge">
-                  {formatDaysAgo(date)}
-                </span></>)}
+               </>)}
               </li>
             );
           })}
