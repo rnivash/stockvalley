@@ -47,7 +47,7 @@ npm run preview
 
 This repo includes a demo dataset at `public/data.yaml`. The app reads this file at runtime (served statically by Vite) to populate sample stocks and portfolio values.
 
-App data is stored in IndexedDB through `src/indexedDb.js`. On existing installations, use **Migrate Local Storage to IndexedDB** on the Data Import / Export page to copy saved data. The migration keeps the localStorage copy and does not replace values already present in IndexedDB.
+App data is stored in IndexedDB through `src/indexedDb.js`.
 
 ## Project structure (key files)
 

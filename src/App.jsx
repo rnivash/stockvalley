@@ -2,10 +2,10 @@ import { useMemo, useState, useEffect } from 'react';
 import { dump, load } from 'js-yaml';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from './components/Navigation';
-import { loadData, migrateLocalStorage, saveData } from './indexedDb';
+import { loadData, saveData } from './indexedDb';
 import {
   CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey,
-  MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage,
+  MANUAL_MAPPINGS_KEY, normalizeSymbols,
   STOCK_KEY, SYMBOL_KEY, toAction, toDate, toNumber
 } from './utils';
 import { DashboardPage } from './pages/DashboardPage';
@@ -26,14 +26,10 @@ const DATA_KEYS = [
 
 export default function App() {
   const location = useLocation();
-  const [cashEntries, setCashEntries] = useState(() => readStorage(CASH_KEY));
-  const [stockEntries, setStockEntries] = useState(() => readStorage(STOCK_KEY));
-  const [dpChargeEntries, setDpChargeEntries] = useState(() => readStorage(DP_CHARGES_KEY));
-  const [symbolSuggestions, setSymbolSuggestions] = useState(() => {
-    const saved = normalizeSymbols(readStorage(SYMBOL_KEY));
-    if (saved.length) return saved;
-    return normalizeSymbols(readStorage(STOCK_KEY).map((item) => item.symbol));
-  });
+  const [cashEntries, setCashEntries] = useState([]);
+  const [stockEntries, setStockEntries] = useState([]);
+  const [dpChargeEntries, setDpChargeEntries] = useState([]);
+  const [symbolSuggestions, setSymbolSuggestions] = useState([]);
   const [sessionDisplayStockEntries, setSessionDisplayStockEntries] = useState([]);
 
   useEffect(() => {
@@ -76,10 +72,9 @@ export default function App() {
   const [stockFilter, setStockFilter] = useState('ALL');
   const [yamlText, setYamlText] = useState('');
   const [yamlStatus, setYamlStatus] = useState('');
-  const [manualMappings, setManualMappings] = useState(() => readStorage(MANUAL_MAPPINGS_KEY));
+  const [manualMappings, setManualMappings] = useState([]);
   const [storageError, setStorageError] = useState('');
   const [isStorageReady, setIsStorageReady] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
 
   const applyIndexedDbData = (stored) => {
     if (stored[CASH_KEY] !== undefined) setCashEntries(stored[CASH_KEY]);
@@ -560,27 +555,6 @@ export default function App() {
     }
   };
 
-  const migrateToIndexedDb = async () => {
-    setIsMigrating(true);
-    setStorageError('');
-    try {
-      const result = await migrateLocalStorage(DATA_KEYS);
-      const stored = await loadData(DATA_KEYS);
-      applyIndexedDbData(stored);
-      setYamlStatus(
-        `Migration complete. ${result.migrated} data set(s) migrated; ${result.skipped} already existed in IndexedDB and were preserved.`
-      );
-    } catch (error) {
-      setYamlStatus(
-        `Migration failed: ${
-          error instanceof Error ? error.message : 'Unknown error.'
-        }`
-      );
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
   return (
     <div className="app-shell">
       <header className="hero">
@@ -653,8 +627,7 @@ export default function App() {
 
         <Route path="/data-yaml" element={
           <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
-            exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml}
-            migrateToIndexedDb={migrateToIndexedDb} isMigrating={isMigrating} />
+            exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
         }
         />
 

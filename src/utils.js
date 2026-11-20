@@ -4,17 +4,6 @@ export const SYMBOL_KEY = 'stockvalley-symbol-suggestions';
 export const DP_CHARGES_KEY = 'stockvalley-dp-charge-entries';
 export const MANUAL_MAPPINGS_KEY = 'stockvalley-manual-mappings';
 
-export const readStorage = (key) => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-};
-
-export const saveStorage = (key, value) => localStorage.setItem(key, JSON.stringify(value));
-
 export const toNumber = (value) => Number(value) || 0;
 
 export const normalizeCreatedAt = (value) => {
