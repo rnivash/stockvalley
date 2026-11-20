@@ -90,7 +90,7 @@ export function SplitViewPage({
                     onClick={() => setExpandedBuy(isExpanded ? null : buy.id)}
                   >
                     {index + 1}.&nbsp;
-                    {formatDateFn(buy.date)} - {currencyFormatter(buy.price)} X {buy.quantity}
+                    {formatDateFn(buy.date)} - {currencyFormatter(currentAmount  / buy.quantity)} X {buy.quantity}
                     <br />
                     {isExpanded && (
                       <div className="target-box">

@@ -207,6 +207,14 @@ p {
   color: #ffffff;
 }
 
+.nav-more-btn {
+  display: none;
+}
+
+.nav-more-menu {
+  display: none;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1254,6 +1262,112 @@ textarea {
   border-radius: 4px;
   width:80px;
 }
+
+.nav-wrap-inline .nav-collapsed {
+  display: none;
+}
+
+@media (max-width: 739px) {
+  .app-shell {
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+
+  .nav-wrap-inline .nav-head {
+    display: none;
+  }
+
+  .nav-wrap-inline .app-nav {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100vw;
+    min-width: 0;
+    height: calc(4.25rem + env(safe-area-inset-bottom));
+    margin: 0;
+    padding: 0.35rem 0.25rem env(safe-area-inset-bottom);
+    border: 1px solid #cbd5e1;
+    border-bottom: 0;
+    border-radius: 1rem 1rem 0 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.15rem;
+    background: #ffffff;
+    box-shadow: 0 -0.35rem 1.25rem rgb(15 23 42 / 12%);
+    z-index: 50;
+  }
+
+  .nav-wrap-inline .app-nav.nav-collapsed {
+    display: grid;
+  }
+
+  .nav-wrap-inline .nav-secondary,
+  .nav-wrap-inline .nav-mobile-secondary {
+    display: none;
+  }
+
+  .nav-wrap-inline .nav-link {
+    min-width: 0;
+    min-height: 3.35rem;
+    padding: 0.45rem 0.2rem;
+    border: 0;
+    border-radius: 0.65rem;
+    text-align: center;
+  }
+
+  .nav-wrap-inline .nav-label {
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+
+  .nav-wrap-inline .nav-hint {
+    display: none;
+  }
+
+  .nav-more-btn {
+    min-width: 0;
+    min-height: 3.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.65rem;
+    background: #f8fafc;
+    color: #0f172a;
+    cursor: pointer;
+  }
+
+  .nav-more-btn.active {
+    background: #0f766e;
+    color: #ffffff;
+  }
+
+  .nav-wrap-inline .nav-more-menu {
+    position: fixed;
+    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    right: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.85rem;
+    background: #ffffff;
+    box-shadow: 0 -0.35rem 1.25rem rgb(15 23 42 / 12%);
+    z-index: 49;
+  }
+
+  .nav-wrap-inline .app-nav.is-more-open .nav-more-menu {
+    display: grid;
+  }
+
+  .nav-wrap-inline .nav-more-menu .nav-link {
+    min-height: 3.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem;
+    text-align: center;
+  }
+}
+
 @media (min-width: 740px) {
   .app-shell {
     padding: 1.5rem;

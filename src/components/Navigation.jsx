@@ -82,10 +82,12 @@ export function List({items, renderItem, emptyText, onItemClick, isItemClickable
 }
 export function AppNav({ inHero = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     setIsExpanded(false);
+    setIsMoreOpen(false);
   }, [location.pathname]);
 
   return (
@@ -113,43 +115,72 @@ export function AppNav({ inHero = false }) {
           </span>
         </button>
       </div>
-      {isExpanded && (
-        <nav className="app-nav" onClick={(event) => {
+      <nav
+        className={`app-nav${isExpanded ? ' nav-expanded' : ' nav-collapsed'}${isMoreOpen ? ' is-more-open' : ''}`}
+        onClick={(event) => {
             const target = event.target;
             if (target instanceof Element && target.closest('a')) {
               setIsExpanded(false);
             }
           }}>
-          <NavLink to="/money" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink end to="/" className={({ isActive }) => `nav-link nav-mobile-primary${isActive ? ' active' : ''}`}>
+            <span className="nav-label">Home</span>
+            <small className="nav-hint">Overview</small>
+          </NavLink>
+          <NavLink to="/money" className={({ isActive }) => `nav-link nav-mobile-primary${isActive ? ' active' : ''}`}>
             <span className="nav-label">Money Movement</span>
             <small className="nav-hint">Add and view entries</small>
           </NavLink>
-          <NavLink  to="/stocks" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink  to="/stocks" className={({ isActive }) => `nav-link nav-mobile-primary${isActive ? ' active' : ''}`}>
             <span className="nav-label">Stock Entries</span>
             <small className="nav-hint">Add and view trades</small>
           </NavLink>
-          <NavLink to="/dp-charges" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to="/dp-charges" className={({ isActive }) => `nav-link nav-mobile-secondary${isActive ? ' active' : ''}`}>
             <span className="nav-label">DP Charges</span>
             <small className="nav-hint">Add delivery charges</small>
           </NavLink>          
-          <NavLink to="/monthly-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to="/monthly-pnl" className={({ isActive }) => `nav-link nav-mobile-primary${isActive ? ' active' : ''}`}>
             <span className="nav-label">Monthly P/L</span>
             <small className="nav-hint">Profit and gain % trend</small>
           </NavLink>
-          <NavLink to="/daily-pnl"className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to="/daily-pnl"className={({ isActive }) => `nav-link nav-mobile-secondary${isActive ? ' active' : ''}`}>
             <span className="nav-label">Daily P/L</span>
             <small className="nav-hint">Day-wise profit breakdown</small>
           </NavLink>          
-          <NavLink to="/data-yaml" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to="/data-yaml" className={({ isActive }) => `nav-link nav-mobile-secondary${isActive ? ' active' : ''}`}>
             <span className="nav-label">Data YAML</span>
             <small className="nav-hint">Import or export all data</small>
           </NavLink>
-          <NavLink to="/split-view/ALL" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+          <NavLink to="/split-view/ALL" className={({ isActive }) => `nav-link nav-mobile-secondary${isActive ? ' active' : ''}`}>
             <span className="nav-label">Split view</span>
             <small className="nav-hint">View all buys</small>
           </NavLink>
+          <button
+            type="button"
+            className={`nav-more-btn nav-mobile-primary${isMoreOpen ? ' active' : ''}`}
+            aria-expanded={isMoreOpen}
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsMoreOpen((prev) => !prev);
+            }}
+          >
+            <span className="nav-label">More</span>
+          </button>
+          <div className="nav-more-menu" aria-label="More navigation">
+            <NavLink to="/dp-charges" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <span className="nav-label">DP Charges</span>
+            </NavLink>
+            <NavLink to="/daily-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <span className="nav-label">Daily P/L</span>
+            </NavLink>
+            <NavLink to="/data-yaml" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <span className="nav-label">Data YAML</span>
+            </NavLink>
+            <NavLink to="/split-view/ALL" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              <span className="nav-label">Split view</span>
+            </NavLink>
+          </div>
         </nav>
-      )}
     </section>
   );
 }
