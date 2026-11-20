@@ -388,6 +388,11 @@ button:hover {
   background: #0d6460;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.35);
@@ -656,6 +661,15 @@ textarea {
 
 .chart-summary {
   color: #475569;
+  font-size: 0.9rem;
+}
+
+.storage-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
   font-size: 0.9rem;
 }
 

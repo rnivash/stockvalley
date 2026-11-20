@@ -2,9 +2,10 @@ import { useMemo, useState, useEffect } from 'react';
 import { dump, load } from 'js-yaml';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from './components/Navigation';
+import { loadData, migrateLocalStorage, saveData } from './indexedDb';
 import {
   CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey,
-  MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage, saveStorage,
+  MANUAL_MAPPINGS_KEY, normalizeSymbols, readStorage,
   STOCK_KEY, SYMBOL_KEY, toAction, toDate, toNumber
 } from './utils';
 import { DashboardPage } from './pages/DashboardPage';
@@ -14,6 +15,14 @@ import { SplitViewPage } from './pages/MappingPages';
 import { DataYamlPage } from './pages/DataYamlPage';
 import { SymbolMapPage } from './pages/SymbolMapPage';
 import { SimpleStockPage } from './pages/SimpleStockPage';
+
+const DATA_KEYS = [
+  CASH_KEY,
+  STOCK_KEY,
+  DP_CHARGES_KEY,
+  SYMBOL_KEY,
+  MANUAL_MAPPINGS_KEY,
+];
 
 export default function App() {
   const location = useLocation();
@@ -68,6 +77,66 @@ export default function App() {
   const [yamlText, setYamlText] = useState('');
   const [yamlStatus, setYamlStatus] = useState('');
   const [manualMappings, setManualMappings] = useState(() => readStorage(MANUAL_MAPPINGS_KEY));
+  const [storageError, setStorageError] = useState('');
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const applyIndexedDbData = (stored) => {
+    if (stored[CASH_KEY] !== undefined) setCashEntries(stored[CASH_KEY]);
+    if (stored[STOCK_KEY] !== undefined) setStockEntries(stored[STOCK_KEY]);
+    if (stored[DP_CHARGES_KEY] !== undefined) {
+      setDpChargeEntries(stored[DP_CHARGES_KEY]);
+    }
+    if (stored[MANUAL_MAPPINGS_KEY] !== undefined) {
+      setManualMappings(stored[MANUAL_MAPPINGS_KEY]);
+    }
+    if (stored[SYMBOL_KEY] !== undefined) {
+      setSymbolSuggestions(normalizeSymbols(stored[SYMBOL_KEY]));
+    } else if (stored[STOCK_KEY] !== undefined) {
+      setSymbolSuggestions(
+        normalizeSymbols(stored[STOCK_KEY].map((item) => item.symbol))
+      );
+    }
+  };
+
+  const persistData = (key, value) => {
+    saveData(key, value).then(
+      () => setStorageError(''),
+      (error) => {
+        setStorageError(
+          `Could not save data to IndexedDB: ${
+            error instanceof Error ? error.message : 'Unknown error.'
+          }`
+        );
+      }
+    );
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    loadData(DATA_KEYS).then(
+      (stored) => {
+        if (!cancelled) {
+          applyIndexedDbData(stored);
+          setIsStorageReady(true);
+        }
+      },
+      (error) => {
+        if (!cancelled) {
+          setStorageError(
+            `Could not load data from IndexedDB: ${
+              error instanceof Error ? error.message : 'Unknown error.'
+            }`
+          );
+          setIsStorageReady(true);
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const sessionStockFilterOptions = [
     ...new Set(sessionDisplayStockEntries.map((item) => item.symbol)),
@@ -171,7 +240,7 @@ export default function App() {
     ];
 
     setCashEntries(next);
-    saveStorage(CASH_KEY, next);
+    persistData(CASH_KEY, next);
     setCashForm({
       type: 'deposit',
       amount: '',
@@ -183,7 +252,7 @@ export default function App() {
   const deleteCashEntry = (id) => {
     const next = cashEntries.filter((item) => item.id !== id);
     setCashEntries(next);
-    saveStorage(CASH_KEY, next);
+    persistData(CASH_KEY, next);
   };
 
   const addDpChargeEntry = (event) => {
@@ -202,7 +271,7 @@ export default function App() {
     ];
 
     setDpChargeEntries(next);
-    saveStorage(DP_CHARGES_KEY, next);
+    persistData(DP_CHARGES_KEY, next);
     setDpChargeForm({
       amount: '',
       note: '',
@@ -213,7 +282,7 @@ export default function App() {
   const deleteDpChargeEntry = (id) => {
     const next = dpChargeEntries.filter((item) => item.id !== id);
     setDpChargeEntries(next);
-    saveStorage(DP_CHARGES_KEY, next);
+    persistData(DP_CHARGES_KEY, next);
   };
 
   const rememberSymbol = (symbolValue) => {
@@ -223,7 +292,7 @@ export default function App() {
     if (!symbol) return;
     setSymbolSuggestions((prev) => {
       const next = normalizeSymbols([...prev, symbol]);
-      saveStorage(SYMBOL_KEY, next);
+      persistData(SYMBOL_KEY, next);
       return next;
     });
   };
@@ -265,7 +334,7 @@ export default function App() {
       },
       ...prev,
     ]);
-    saveStorage(STOCK_KEY, next);
+    persistData(STOCK_KEY, next);
     rememberSymbol(symbol);
     setStockForm({
       action: 'buy',
@@ -281,7 +350,7 @@ export default function App() {
     const next = stockEntries.filter((item) => item.id !== id);
     setStockEntries(next);
     setSessionDisplayStockEntries((prev) => prev.filter((item) => item.id !== id));
-    saveStorage(STOCK_KEY, next);
+    persistData(STOCK_KEY, next);
   };
 
   const addManualMapping = ({ buyId, sellId, qty }) => {
@@ -306,7 +375,7 @@ export default function App() {
       },
     ];
     setManualMappings(next);
-    saveStorage(MANUAL_MAPPINGS_KEY, next);
+    persistData(MANUAL_MAPPINGS_KEY, next);
   };
 
   const removeManualMapping = (buyId, sellId) => {
@@ -314,13 +383,13 @@ export default function App() {
       (m) => !(m.buyId === buyId && m.sellId === sellId)
     );
     setManualMappings(next);
-    saveStorage(MANUAL_MAPPINGS_KEY, next);
+    persistData(MANUAL_MAPPINGS_KEY, next);
   };
 
   const resetSymbolMappings = (symbol) => {
     const next = manualMappings.filter((m) => m.symbol !== symbol);
     setManualMappings(next);
-    saveStorage(MANUAL_MAPPINGS_KEY, next);
+    persistData(MANUAL_MAPPINGS_KEY, next);
   };
 
   const startStockEdit = (item) => {
@@ -418,7 +487,7 @@ export default function App() {
           : item
       );
     });
-    saveStorage(STOCK_KEY, next);
+    persistData(STOCK_KEY, next);
     rememberSymbol(symbol);
     cancelStockEdit();
   };
@@ -476,11 +545,11 @@ export default function App() {
       setManualMappings(nextManualMappings)
       setEditingStockId('');
 
-      saveStorage(CASH_KEY, nextCashEntries);
-      saveStorage(STOCK_KEY, nextStockEntries);
-      saveStorage(DP_CHARGES_KEY, nextDpChargeEntries);
-      saveStorage(SYMBOL_KEY, nextSymbolSuggestions);
-      saveStorage(MANUAL_MAPPINGS_KEY, nextManualMappings);
+      persistData(CASH_KEY, nextCashEntries);
+      persistData(STOCK_KEY, nextStockEntries);
+      persistData(DP_CHARGES_KEY, nextDpChargeEntries);
+      persistData(SYMBOL_KEY, nextSymbolSuggestions);
+      persistData(MANUAL_MAPPINGS_KEY, nextManualMappings);
 
       setYamlStatus('YAML data imported successfully.');
     } catch (error) {
@@ -488,6 +557,27 @@ export default function App() {
         `Import failed: ${error instanceof Error ? error.message : 'Invalid YAML data.'
         }`
       );
+    }
+  };
+
+  const migrateToIndexedDb = async () => {
+    setIsMigrating(true);
+    setStorageError('');
+    try {
+      const result = await migrateLocalStorage(DATA_KEYS);
+      const stored = await loadData(DATA_KEYS);
+      applyIndexedDbData(stored);
+      setYamlStatus(
+        `Migration complete. ${result.migrated} data set(s) migrated; ${result.skipped} already existed in IndexedDB and were preserved.`
+      );
+    } catch (error) {
+      setYamlStatus(
+        `Migration failed: ${
+          error instanceof Error ? error.message : 'Unknown error.'
+        }`
+      );
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -514,7 +604,11 @@ export default function App() {
         </p>
       </header>
 
-      <Routes>
+      {storageError ? (
+        <p className="storage-error" role="alert">{storageError}</p>
+      ) : null}
+
+      {isStorageReady ? <Routes>
         <Route path="/" element={
           <DashboardPage currency={currency} stockEntries={stockEntries} manualMappings={manualMappings}
             pnlByDate={pnlByDate} dpchargetotal={dpchargetotal} fundtotal={fundtotal} />
@@ -559,7 +653,8 @@ export default function App() {
 
         <Route path="/data-yaml" element={
           <DataYamlPage yamlText={yamlText} setYamlText={setYamlText} yamlStatus={yamlStatus}
-            exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml} />
+            exportAllDataAsYaml={exportAllDataAsYaml} importAllDataFromYaml={importAllDataFromYaml}
+            migrateToIndexedDb={migrateToIndexedDb} isMigrating={isMigrating} />
         }
         />
 
@@ -575,7 +670,7 @@ export default function App() {
         }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      </Routes> : <p className="chart-summary">Loading saved data...</p>}
     </div>
   );
 }

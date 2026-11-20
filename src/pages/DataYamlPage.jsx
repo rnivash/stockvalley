@@ -4,6 +4,8 @@ export function DataYamlPage({
   yamlStatus,
   exportAllDataAsYaml,
   importAllDataFromYaml,
+  migrateToIndexedDb,
+  isMigrating,
 }) {
   return (
     <section className="panel">
@@ -17,6 +19,9 @@ export function DataYamlPage({
         </button>
         <button type="button" onClick={importAllDataFromYaml}>
           Import From YAML
+        </button>
+        <button type="button" onClick={migrateToIndexedDb} disabled={isMigrating}>
+          {isMigrating ? 'Migrating...' : 'Migrate Local Storage to IndexedDB'}
         </button>
       </div>
       <textarea
