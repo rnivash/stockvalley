@@ -11,7 +11,7 @@ import {
 import { DashboardPage } from './pages/DashboardPage';
 import { DpChargesPage, MoneyPage, StocksPage } from './pages/EntryPages';
 import { DailyPLPage, MonthlyPnlPage } from './pages/PerformancePages';
-import { SplitViewPage } from './pages/MappingPages';
+import { SplitViewPage } from './pages/SplitViewPage';
 import { DataYamlPage } from './pages/DataYamlPage';
 import { SymbolMapPage } from './pages/SymbolMapPage';
 import { SimpleStockPage } from './pages/SimpleStockPage';

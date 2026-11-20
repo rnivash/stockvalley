@@ -123,10 +123,7 @@ export function DashboardPage({
             </span>
           </div>
         </article>
-        <article className='card good'>
-          <small>Today</small>
-          <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
-        </article>
+        
         <article className='card good'>
          <small>Numbers</small>
           <div className="metric-badges">
@@ -140,6 +137,11 @@ export function DashboardPage({
               Trade Balance {currencyFormatter(prjectedBalnceAmount)}
             </span>
           </div>
+        </article>
+
+        <article className='card good'>
+          <small>Today</small>
+          <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
         </article>
       </section>
 
