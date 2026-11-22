@@ -12,6 +12,9 @@ export function SplitViewPage({
 }) {
   const { findsymbol } = useParams();
   const [symbolFilter, setSymbolFilter] = useState(findsymbol || 'ALL');
+  const [isSelectorExpanded, setIsSelectorExpanded] = useState(
+    (findsymbol || 'ALL') === 'ALL'
+  );
   const [expandedBuy, setExpandedBuy] = useState(null);
 
   const symbolBuys = stockEntries.filter((item) =>
@@ -48,9 +51,11 @@ export function SplitViewPage({
         stockEntries={stockEntries}
         selectedSymbol={symbolFilter}
         onSymbolSelect={setSymbolFilter}
+        onCollapse={() => setIsSelectorExpanded(false)}
+        onExpand={() => setIsSelectorExpanded(true)}
         includeAll={false}
       />
-      <div className="split-view">
+      {!isSelectorExpanded && <div className="split-view">
         {symbolFilter !== 'ALL' && (
           <>
             <div>
@@ -99,7 +104,7 @@ export function SplitViewPage({
             </ul>
           </>
         )}
-      </div>
+      </div>}
     </>
   );
 }
