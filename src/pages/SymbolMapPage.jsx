@@ -270,7 +270,7 @@ export function SymbolMapPage({
         onSymbolSelect={handleSymbolChange}
         onCollapse={() => setIsSelectorExpanded(false)}
         onExpand={() => setIsSelectorExpanded(true)}
-        includeAll
+        includeAll={false}
       />
 
       {!isSelectorExpanded && effectiveSymbol && effectiveSymbol !== 'ALL' ? (
