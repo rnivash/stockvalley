@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CustomSelect } from '../components/Navigation';
+import { SymbolSelector } from '../components/SymbolSelector';
 import { toAction, toNumber } from '../utils';
 
 const ACTION_ORDER = {
@@ -122,6 +122,9 @@ export function SymbolMapPage({
   const [selectedBuyId, setSelectedBuyId] = useState(null);
   const [selectedSellId, setSelectedSellId] = useState(null);
   const [mapQty, setMapQty] = useState(0);
+  const [isSelectorExpanded, setIsSelectorExpanded] = useState(
+    (findsymbol || 'ALL') === 'ALL'
+  );
 
   useEffect(() => {
     const nextSymbol =
@@ -190,8 +193,7 @@ export function SymbolMapPage({
     ? [...stockEntries.filter((entry) => entry.symbol === effectiveSymbol)].sort(sortTransactionsByDate)
     : [];
 
-  const handleSymbolChange = (event) => {
-    const nextSymbol = event.target.value;
+  const handleSymbolChange = (nextSymbol) => {
     setSelectedSymbol(nextSymbol);
     setSelectedBuyId(null);
     setSelectedSellId(null);
@@ -262,22 +264,16 @@ export function SymbolMapPage({
 
   return (
     <section className="panel">
-      <div>
-        <CustomSelect
-          id="symbol-map-filter"
-          value={selectedSymbol}
-          onChange={handleSymbolChange}
-        >
-          <option value="ALL">All Symbols</option>
-          {symbolOptions.map((symbol) => (
-            <option key={symbol} value={symbol}>
-              {symbol}
-            </option>
-          ))}
-        </CustomSelect>
-      </div>
+      <SymbolSelector
+        symbols={symbolOptions}
+        selectedSymbol={selectedSymbol}
+        onSymbolSelect={handleSymbolChange}
+        onCollapse={() => setIsSelectorExpanded(false)}
+        onExpand={() => setIsSelectorExpanded(true)}
+        includeAll
+      />
 
-      {effectiveSymbol && effectiveSymbol !== 'ALL' ? (
+      {!isSelectorExpanded && effectiveSymbol && effectiveSymbol !== 'ALL' ? (
         <div className="mapping-summary-table">
           <div className="mapping-card">
             <div className="mapping-header">
@@ -420,11 +416,11 @@ export function SymbolMapPage({
             </div>
           </div>
         </div>
-      ) : (
+      ) : !isSelectorExpanded ? (
         <div className="empty">
           Select a stock symbol to begin mapping.
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
