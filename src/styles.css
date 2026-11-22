@@ -329,6 +329,54 @@ p {
   font-weight: 600;
 }
 
+.symbol-selector {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.symbol-selector-title {
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.symbol-selector-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.symbol-selector-button {
+  flex: 0 0 auto;
+  width: fit-content;
+  min-height: 1.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.symbol-selector-button:hover {
+  background: #eef2ff;
+  border-color: #94a3b8;
+}
+
+.symbol-selector-button.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.symbol-selector-button:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 /* ── Base inputs ── */
 input:not([type='checkbox']):not([type='radio']),
 textarea {

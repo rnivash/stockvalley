@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CustomSelect } from '../components/Navigation';
+import { SymbolSelector } from '../components/SymbolSelector';
 import { toAction } from '../utils';
 
 export function SplitViewPage({
@@ -43,20 +43,13 @@ export function SplitViewPage({
 
   return (
     <>
-      <div>
-        <CustomSelect
-          id="split-view-filter"
-          value={symbolFilter}
-          onChange={(event) => setSymbolFilter(event.target.value)}
-        >
-          <option value="ALL">All Symbols</option>
-          {symbolSuggestions.map((symbol) => (
-            <option key={symbol} value={symbol}>
-              {symbol}
-            </option>
-          ))}
-        </CustomSelect>
-      </div>
+      <SymbolSelector
+        symbolSuggestions={symbolSuggestions}
+        stockEntries={stockEntries}
+        selectedSymbol={symbolFilter}
+        onSymbolSelect={setSymbolFilter}
+        includeAll={false}
+      />
       <div className="split-view">
         {symbolFilter !== 'ALL' && (
           <>
