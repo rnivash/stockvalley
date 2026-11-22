@@ -4,7 +4,7 @@ import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppNav } from './components/Navigation';
 import { loadData, saveData } from './indexedDb';
 import {
-  CASH_KEY, currency, DP_CHARGES_KEY, formatDate, getDateKey,
+  CASH_KEY, currency, DIVIDEND_KEY, DP_CHARGES_KEY, formatDate, getDateKey,
   MANUAL_MAPPINGS_KEY, normalizeSymbols,
   STOCK_KEY, SYMBOL_KEY, toAction, toDate, toNumber
 } from './utils';
@@ -21,6 +21,7 @@ const DATA_KEYS = [
   CASH_KEY,
   STOCK_KEY,
   DP_CHARGES_KEY,
+  DIVIDEND_KEY,
   SYMBOL_KEY,
   MANUAL_MAPPINGS_KEY,
 ];
@@ -30,6 +31,7 @@ export default function App() {
   const [cashEntries, setCashEntries] = useState([]);
   const [stockEntries, setStockEntries] = useState([]);
   const [dpChargeEntries, setDpChargeEntries] = useState([]);
+  const [dividendEntries, setDividendEntries] = useState([]);
   const [symbolSuggestions, setSymbolSuggestions] = useState([]);
   const [sessionDisplayStockEntries, setSessionDisplayStockEntries] = useState([]);
 
@@ -49,6 +51,12 @@ export default function App() {
   const [dpChargeForm, setDpChargeForm] = useState({
     amount: '',
     note: '',
+    date: new Date().toISOString().slice(0, 10),
+  });
+
+  const [dividendForm, setDividendForm] = useState({
+    symbol: '',
+    amount: '',
     date: new Date().toISOString().slice(0, 10),
   });
 
@@ -82,6 +90,9 @@ export default function App() {
     if (stored[STOCK_KEY] !== undefined) setStockEntries(stored[STOCK_KEY]);
     if (stored[DP_CHARGES_KEY] !== undefined) {
       setDpChargeEntries(stored[DP_CHARGES_KEY]);
+    }
+    if (stored[DIVIDEND_KEY] !== undefined) {
+      setDividendEntries(stored[DIVIDEND_KEY]);
     }
     if (stored[MANUAL_MAPPINGS_KEY] !== undefined) {
       setManualMappings(stored[MANUAL_MAPPINGS_KEY]);
@@ -273,6 +284,38 @@ export default function App() {
       note: '',
       date: new Date().toISOString().slice(0, 10),
     });
+  };
+
+  const addDividendEntry = (event) => {
+    event.preventDefault();
+    const symbol = String(dividendForm.symbol || '').trim().toUpperCase();
+    const amount = Math.abs(toNumber(dividendForm.amount));
+    if (!symbol || amount <= 0) return;
+
+    const next = [
+      {
+        id: crypto.randomUUID(),
+        symbol,
+        amount,
+        date: dividendForm.date || new Date().toISOString().slice(0, 10),
+      },
+      ...dividendEntries,
+    ];
+
+    setDividendEntries(next);
+    persistData(DIVIDEND_KEY, next);
+    rememberSymbol(symbol);
+    setDividendForm({
+      symbol,
+      amount: '',
+      date: new Date().toISOString().slice(0, 10),
+    });
+  };
+
+  const deleteDividendEntry = (id) => {
+    const next = dividendEntries.filter((item) => item.id !== id);
+    setDividendEntries(next);
+    persistData(DIVIDEND_KEY, next);
   };
 
   const deleteDpChargeEntry = (id) => {
@@ -495,6 +538,7 @@ export default function App() {
       cashEntries,
       stockEntries,
       dpChargeEntries,
+      dividendEntries,
       manualMappings,
       symbolSuggestions,
     };
@@ -532,11 +576,21 @@ export default function App() {
         ? normalizeSymbols(parsed.symbolSuggestions)
         : normalizeSymbols(nextStockEntries.map((item) => item.symbol));
 
+      const nextDividendEntries = Array.isArray(parsed.dividendEntries)
+        ? parsed.dividendEntries.map((item) => ({
+          id: item?.id ? String(item.id) : crypto.randomUUID(),
+          symbol: String(item?.symbol || '').trim().toUpperCase(),
+          amount: Math.abs(toNumber(item?.amount)),
+          date: item?.date || new Date().toISOString().slice(0, 10),
+        })).filter((item) => item.symbol && item.amount > 0)
+        : [];
+
       const nextManualMappings = Array.isArray(parsed.manualMappings) ? parsed.manualMappings : [];
 
       setCashEntries(nextCashEntries);
       setStockEntries(nextStockEntries);
       setDpChargeEntries(nextDpChargeEntries);
+      setDividendEntries(nextDividendEntries);
       setSymbolSuggestions(nextSymbolSuggestions);
       setManualMappings(nextManualMappings)
       setEditingStockId('');
@@ -544,6 +598,7 @@ export default function App() {
       persistData(CASH_KEY, nextCashEntries);
       persistData(STOCK_KEY, nextStockEntries);
       persistData(DP_CHARGES_KEY, nextDpChargeEntries);
+      persistData(DIVIDEND_KEY, nextDividendEntries);
       persistData(SYMBOL_KEY, nextSymbolSuggestions);
       persistData(MANUAL_MAPPINGS_KEY, nextManualMappings);
 
@@ -600,7 +655,17 @@ export default function App() {
         }
         />
         <Route path="/dividends" element={
-          <DividendPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} />
+          <DividendPage
+            symbolSuggestions={symbolSuggestions}
+            stockEntries={stockEntries}
+            dividendEntries={dividendEntries}
+            dividendForm={dividendForm}
+            setDividendForm={setDividendForm}
+            addDividendEntry={addDividendEntry}
+            deleteDividendEntry={deleteDividendEntry}
+            currency={currency}
+            formatDate={formatDate}
+          />
         } />
         <Route path="/stocks" element={
           <StocksPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}

@@ -2,6 +2,7 @@ export const CASH_KEY = 'stockvalley-cash-entries';
 export const STOCK_KEY = 'stockvalley-stock-entries';
 export const SYMBOL_KEY = 'stockvalley-symbol-suggestions';
 export const DP_CHARGES_KEY = 'stockvalley-dp-charge-entries';
+export const DIVIDEND_KEY = 'stockvalley-dividend-entries';
 export const MANUAL_MAPPINGS_KEY = 'stockvalley-manual-mappings';
 
 export const toNumber = (value) => Number(value) || 0;
