@@ -82,12 +82,10 @@ export function List({items, renderItem, emptyText, onItemClick, isItemClickable
 }
 export function AppNav({ inHero = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
     setIsExpanded(false);
-    setIsMoreOpen(false);
   }, [location.pathname]);
 
   return (
@@ -116,7 +114,7 @@ export function AppNav({ inHero = false }) {
         </button>
       </div>
       <nav
-        className={`app-nav${isExpanded ? ' nav-expanded' : ' nav-collapsed'}${isMoreOpen ? ' is-more-open' : ''}`}
+        className={`app-nav${isExpanded ? ' nav-expanded' : ' nav-collapsed'}`}
         onClick={(event) => {
             const target = event.target;
             if (target instanceof Element && target.closest('a')) {
@@ -159,31 +157,6 @@ export function AppNav({ inHero = false }) {
             <span className="nav-label">Split view</span>
             <small className="nav-hint">View all buys</small>
           </NavLink>
-          <button
-            type="button"
-            className={`nav-more-btn nav-mobile-primary${isMoreOpen ? ' active' : ''}`}
-            aria-expanded={isMoreOpen}
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsMoreOpen((prev) => !prev);
-            }}
-          >
-            <span className="nav-label">More</span>
-          </button>
-          <div className="nav-more-menu" aria-label="More navigation">
-            <NavLink to="/dp-charges" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <span className="nav-label">DP Charges</span>
-            </NavLink>
-            <NavLink to="/daily-pnl" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <span className="nav-label">Daily P/L</span>
-            </NavLink>
-            <NavLink to="/data-yaml" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <span className="nav-label">Data YAML</span>
-            </NavLink>
-            <NavLink to="/split-view/ALL" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <span className="nav-label">Split view</span>
-            </NavLink>
-          </div>
         </nav>
     </section>
   );

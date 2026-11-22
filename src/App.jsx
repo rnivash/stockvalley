@@ -627,11 +627,11 @@ export default function App() {
               Stock Valley
             </Link>
           </h1>
-          <AppNav inHero />
         </div>
         <p>
           Track deposits, withdrawals, and each stock position in one place.
         </p>
+        <AppNav inHero />
       </header>
 
       {storageError ? (
