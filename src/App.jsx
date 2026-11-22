@@ -599,7 +599,9 @@ export default function App() {
             dpChargeEntries={dpChargeEntries} deleteDpChargeEntry={deleteDpChargeEntry} currency={currency} formatDate={formatDate} />
         }
         />
-        <Route path="/dividends" element={<DividendPage />} />
+        <Route path="/dividends" element={
+          <DividendPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries} />
+        } />
         <Route path="/stocks" element={
           <StocksPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
             setStockFilter={setStockFilter} stockFilterOptions={stockFilterOptions} filteredStockEntries={filteredStockEntries}
