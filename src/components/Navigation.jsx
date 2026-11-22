@@ -135,6 +135,10 @@ export function AppNav({ inHero = false }) {
             <span className="nav-label">Stock Entries</span>
             <small className="nav-hint">Add and view trades</small>
           </NavLink>
+          <NavLink to="/dividends" className={({ isActive }) => `nav-link nav-mobile-secondary${isActive ? ' active' : ''}`}>
+            <span className="nav-label">Dividends</span>
+            <small className="nav-hint">View dividend income</small>
+          </NavLink>
           <NavLink to="/dp-charges" className={({ isActive }) => `nav-link nav-mobile-secondary${isActive ? ' active' : ''}`}>
             <span className="nav-label">DP Charges</span>
             <small className="nav-hint">Add delivery charges</small>

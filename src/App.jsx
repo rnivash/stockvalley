@@ -15,6 +15,7 @@ import { SplitViewPage } from './pages/SplitViewPage';
 import { DataYamlPage } from './pages/DataYamlPage';
 import { SymbolMapPage } from './pages/SymbolMapPage';
 import { SimpleStockPage } from './pages/SimpleStockPage';
+import { DividendPage } from './pages/DividendPage';
 
 const DATA_KEYS = [
   CASH_KEY,
@@ -598,6 +599,7 @@ export default function App() {
             dpChargeEntries={dpChargeEntries} deleteDpChargeEntry={deleteDpChargeEntry} currency={currency} formatDate={formatDate} />
         }
         />
+        <Route path="/dividends" element={<DividendPage />} />
         <Route path="/stocks" element={
           <StocksPage stockForm={stockForm} setStockForm={setStockForm} addStockEntry={addStockEntry} stockFilter={stockFilter}
             setStockFilter={setStockFilter} stockFilterOptions={stockFilterOptions} filteredStockEntries={filteredStockEntries}
