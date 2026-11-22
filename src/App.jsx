@@ -220,6 +220,13 @@ export default function App() {
     }, 0);
   }, [dpChargeEntries]);
 
+  const dividendtotal = useMemo(() => {
+    return dividendEntries.reduce((result, item) => {
+      result = result + item.amount;
+      return result;
+    }, 0);
+  }, [dividendEntries]);
+
   const fundtotal = useMemo(() => {
     return cashEntries.reduce((result, item) => {
       if (item.type == 'withdraw')
@@ -641,7 +648,7 @@ export default function App() {
       {isStorageReady ? <Routes>
         <Route path="/" element={
           <DashboardPage currency={currency} stockEntries={stockEntries} manualMappings={manualMappings}
-            pnlByDate={pnlByDate} dpchargetotal={dpchargetotal} fundtotal={fundtotal} />
+            pnlByDate={pnlByDate} dpchargetotal={dpchargetotal} dividendtotal={dividendtotal} fundtotal={fundtotal} />
         }
         />
         <Route path="/money" element={

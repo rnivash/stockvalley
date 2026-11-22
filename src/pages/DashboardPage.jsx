@@ -23,6 +23,7 @@ export function DashboardPage({
   manualMappings,
   pnlByDate,
   dpchargetotal,
+  dividendtotal,
   fundtotal }) {
 
   
@@ -44,6 +45,7 @@ export function DashboardPage({
   let grossprofit = totalprofit;
 
   totalprofit = totalprofit - dpchargetotal;
+  totalprofit = totalprofit + dividendtotal;
 
   const symbolBuys = stockEntries.filter((item) => toAction(item.action) === 'buy');
   
@@ -114,6 +116,9 @@ export function DashboardPage({
             </span>
             <span className={`metric-badge net-profit-bad`} >
               DP {currencyFormatter(dpchargetotal)}
+            </span>
+            <span className="metric-badge net-profit-good">
+              Dividend {currencyFormatter(dividendtotal)}
             </span>
             <span className={`metric-badge ${grossprofit >= 0 ? 'net-profit-good' : 'net-profit-bad' }`}>
               Gross Profit {currencyFormatter(grossprofit)}
