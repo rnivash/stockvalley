@@ -361,6 +361,35 @@ p {
   font-weight: 700;
 }
 
+.symbol-selector-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.symbol-selector-selected-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.symbol-selector-selected {
+  color: #0f766e;
+  font-size: 0.82rem;
+}
+
+.symbol-selector-edit {
+  width: fit-content;
+  min-height: 1.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.45rem;
+  background: #f8fafc;
+  color: #0f766e;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
 .symbol-selector-button:hover {
   background: #eef2ff;
   border-color: #94a3b8;
