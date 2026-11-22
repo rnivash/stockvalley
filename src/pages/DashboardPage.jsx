@@ -262,5 +262,8 @@ export function TodayBooked({ pnlByDate }) {
     <button className="btn-nav" onClick={() => history("/daily-pnl")} >
       Daily
     </button>
+    <button className="btn-nav" onClick={() => history("/symbol-map/all")} >
+      Map
+    </button>
   </>);
 }
