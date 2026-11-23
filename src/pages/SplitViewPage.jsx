@@ -48,12 +48,10 @@ export function SplitViewPage({
     <>
       <SymbolSelector
         symbolSuggestions={symbolSuggestions}
-        stockEntries={stockEntries}
         selectedSymbol={symbolFilter}
         onSymbolSelect={setSymbolFilter}
         onCollapse={() => setIsSelectorExpanded(false)}
         onExpand={() => setIsSelectorExpanded(true)}
-        includeAll={false}
       />
       {!isSelectorExpanded && <div className="split-view">
         {symbolFilter !== 'ALL' && (

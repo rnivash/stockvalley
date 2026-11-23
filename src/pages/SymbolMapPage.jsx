@@ -141,7 +141,6 @@ export function SymbolMapPage({
     selectedSymbol === 'ALL' ? (findsymbol && findsymbol !== 'ALL' ? String(findsymbol).toUpperCase() : '') : selectedSymbol;
 
   const effectiveSymbol = resolvedSymbol || selectedSymbol;
-  const symbolOptions = [...new Set(symbolSuggestions)].sort();
 
   const { buyAllocated, sellAllocated, unlinkedBuys, unlinkedSells, symbolMappings } = useMemo(() => {
     if (!effectiveSymbol || effectiveSymbol === 'ALL') {
@@ -265,12 +264,11 @@ export function SymbolMapPage({
   return (
     <section className="panel">
       <SymbolSelector
-        symbols={symbolOptions}
+        symbolSuggestions={symbolSuggestions}
         selectedSymbol={selectedSymbol}
         onSymbolSelect={handleSymbolChange}
         onCollapse={() => setIsSelectorExpanded(false)}
         onExpand={() => setIsSelectorExpanded(true)}
-        includeAll={false}
       />
 
       {!isSelectorExpanded && effectiveSymbol && effectiveSymbol !== 'ALL' ? (

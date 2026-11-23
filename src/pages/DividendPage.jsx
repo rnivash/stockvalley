@@ -13,14 +13,6 @@ export function DividendPage({
   currency: currencyFormatter,
   formatDate: formatDateFn,
 }) {
-  const symbols = [...new Set([
-    ...symbolSuggestions,
-    ...stockEntries.map((item) => item?.symbol),
-    ...dividendEntries.map((item) => item?.symbol),
-  ])]
-    .map((symbol) => String(symbol || '').trim().toUpperCase())
-    .filter(Boolean)
-    .sort();
 
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [isSelectorExpanded, setIsSelectorExpanded] = useState(true);
@@ -59,12 +51,11 @@ export function DividendPage({
       </div>
 
       <SymbolSelector
-        symbols={symbols}
+        symbolSuggestions={symbolSuggestions}
         selectedSymbol={selectedSymbol}
         onSymbolSelect={handleSymbolSelect}
         onCollapse={() => setIsSelectorExpanded(false)}
         onExpand={() => setIsSelectorExpanded(true)}
-        includeAll={false}
       />
 
       {!isSelectorExpanded && (

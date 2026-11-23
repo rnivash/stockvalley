@@ -1,20 +1,16 @@
 import { useState } from 'react';
 
 export function SymbolSelector({
-  symbols: inputSymbols,
   symbolSuggestions = [],
-  stockEntries = [],
   selectedSymbol = 'ALL',
   onSymbolSelect,
-  includeAll = true,
-  allLabel = 'All Symbols',
-  title = 'Symbols',
+  includeAll = false,  
   onCollapse,
   onExpand,
 }) {
-  const sourceSymbols = inputSymbols ?? [
-    ...symbolSuggestions,
-    ...stockEntries.map((item) => item?.symbol),
+
+  const sourceSymbols = [
+    ...symbolSuggestions
   ];
   const normalizedSelectedSymbol = String(selectedSymbol || 'ALL').trim().toUpperCase();
   const symbols = [...new Set(sourceSymbols)]
@@ -39,13 +35,12 @@ export function SymbolSelector({
   if (!isExpanded) {
     return (
       <div className="symbol-selector symbol-selector-collapsed">
-        {title ? <span className="symbol-selector-title">{title}</span> : null}
+        <span className="symbol-selector-title">Select Symbol</span>
         <div className="symbol-selector-selected-row">
           <strong className="symbol-selector-selected">{normalizedSelectedSymbol}</strong>
           <button
             type="button"
             className="symbol-selector-edit"
-            aria-label={`Edit ${title || 'symbol'} selection`}
             onClick={expandSelector}
           >
             Edit
@@ -57,8 +52,8 @@ export function SymbolSelector({
 
   return (
     <div className="symbol-selector">
-      {title ? <span className="symbol-selector-title">{title}</span> : null}
-      <div className="symbol-selector-list" role="list" aria-label={title || 'Symbols'}>
+      <span className="symbol-selector-title">Select Symbol</span>
+      <div className="symbol-selector-list" role="list" >
         {includeAll && (
           <button
             type="button"
@@ -67,7 +62,7 @@ export function SymbolSelector({
             aria-pressed={normalizedSelectedSymbol === 'ALL'}
             onClick={() => selectSymbol('ALL')}
           >
-            {allLabel}
+            ALL
           </button>
         )}
         {symbols.map((symbol) => (
