@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { setActiveSymbol } from '../sessionservice';
 
 export function SymbolSelector({
   symbolSuggestions = [],
@@ -22,7 +23,7 @@ export function SymbolSelector({
   if (!symbols.length && !includeAll) return null;
 
   const selectSymbol = (symbol) => {
-    onSymbolSelect?.(symbol);
+    onSymbolSelect?.(setActiveSymbol(symbol));
     setIsExpanded(false);
     onCollapse?.(symbol);
   };
