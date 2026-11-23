@@ -92,6 +92,7 @@ export function SplitViewPage({
                   >
                     {index + 1}.&nbsp;
                     {formatDateFn(buy.date)} - {currencyFormatter(currentAmount  / buy.quantity)} X {buy.quantity}
+                    <button className="btn-nav split-view-sell">Sell</button>
                     <br />
                     {isExpanded && (
                       <div className="target-box">
