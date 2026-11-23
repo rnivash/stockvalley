@@ -20,6 +20,10 @@ export function SymbolSelector({
     .sort();
   const [isExpanded, setIsExpanded] = useState(normalizedSelectedSymbol === 'ALL');
 
+  if(!isExpanded){
+    setActiveSymbol(normalizedSelectedSymbol);
+  }
+
   if (!symbols.length && !includeAll) return null;
 
   const selectSymbol = (symbol) => {
