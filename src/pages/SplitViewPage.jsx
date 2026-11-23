@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { SymbolSelector } from '../components/SymbolSelector';
+import { getActiveSymbol } from '../sessionservice';
 import { toAction } from '../utils';
 
 export function SplitViewPage({
@@ -11,9 +12,13 @@ export function SplitViewPage({
   formatDate: formatDateFn
 }) {
   const { findsymbol } = useParams();
-  const [symbolFilter, setSymbolFilter] = useState(findsymbol || 'ALL');
+  const initialSymbol =
+    findsymbol && findsymbol !== 'ALL'
+      ? findsymbol
+      : getActiveSymbol() || 'ALL';
+  const [symbolFilter, setSymbolFilter] = useState(initialSymbol);
   const [isSelectorExpanded, setIsSelectorExpanded] = useState(
-    (findsymbol || 'ALL') === 'ALL'
+    initialSymbol === 'ALL'
   );
   const [expandedBuy, setExpandedBuy] = useState(null);
 
