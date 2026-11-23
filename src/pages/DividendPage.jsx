@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SymbolSelector } from '../components/SymbolSelector';
 import { List } from '../components/Navigation';
+import { getActiveSymbol } from '../sessionservice';
 
 export function DividendPage({
   symbolSuggestions = [],
@@ -14,7 +15,7 @@ export function DividendPage({
   formatDate: formatDateFn,
 }) {
 
-  const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [selectedSymbol, setSelectedSymbol] = useState(getActiveSymbol() || 'ALL');
   const [isSelectorExpanded, setIsSelectorExpanded] = useState(true);
 
   const totalDividend = dividendEntries.reduce(

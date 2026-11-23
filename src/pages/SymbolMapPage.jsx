@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SymbolSelector } from '../components/SymbolSelector';
 import { toAction, toNumber } from '../utils';
+import { getActiveSymbol } from '../sessionservice';
 
 const ACTION_ORDER = {
   buy: 0,
@@ -117,7 +118,7 @@ export function SymbolMapPage({
 }) {
   const { findsymbol } = useParams();
   const [selectedSymbol, setSelectedSymbol] = useState(
-    findsymbol && findsymbol !== 'ALL' ? String(findsymbol).toUpperCase() : 'ALL'
+    findsymbol && String(findsymbol).toUpperCase() !== 'ALL' ? String(findsymbol).toUpperCase() : (getActiveSymbol() || 'ALL')
   );
   const [selectedBuyId, setSelectedBuyId] = useState(null);
   const [selectedSellId, setSelectedSellId] = useState(null);
@@ -126,19 +127,8 @@ export function SymbolMapPage({
     (findsymbol || 'ALL') === 'ALL'
   );
 
-  useEffect(() => {
-    const nextSymbol =
-      findsymbol && findsymbol !== 'ALL'
-        ? String(findsymbol).toUpperCase()
-        : 'ALL';
-    setSelectedSymbol(nextSymbol);
-    setSelectedBuyId(null);
-    setSelectedSellId(null);
-    setMapQty(0);
-  }, [findsymbol]);
-
   const resolvedSymbol =
-    selectedSymbol === 'ALL' ? (findsymbol && findsymbol !== 'ALL' ? String(findsymbol).toUpperCase() : '') : selectedSymbol;
+    selectedSymbol === 'ALL' ? (findsymbol && String(findsymbol).toUpperCase() !== 'ALL' ? String(findsymbol).toUpperCase() : '') : selectedSymbol;
 
   const effectiveSymbol = resolvedSymbol || selectedSymbol;
 
