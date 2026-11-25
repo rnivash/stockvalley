@@ -392,6 +392,49 @@ export default function App() {
     });
   };
 
+  const addSellEntryForBuy = ({ buyId, price, date }) => {
+    const buyTx = stockEntries.find((item) => item.id === buyId);
+    const sellPrice = toNumber(price);
+    if (
+      !buyTx ||
+      toAction(buyTx.action) !== 'buy' ||
+      sellPrice <= 0 ||
+      !toDate(date) ||
+      manualMappings.some((mapping) => mapping.buyId === buyId)
+    ) {
+      return false;
+    }
+
+    const sellEntry = {
+      id: crypto.randomUUID(),
+      action: 'sell',
+      symbol: buyTx.symbol,
+      quantity: toNumber(buyTx.quantity),
+      price: sellPrice,
+      charges: 0,
+      date,
+      createdAt: Date.now(),
+    };
+    const nextStockEntries = [sellEntry, ...stockEntries];
+    const nextManualMappings = [
+      ...manualMappings,
+      {
+        buyId: buyTx.id,
+        sellId: sellEntry.id,
+        qty: sellEntry.quantity,
+        symbol: buyTx.symbol,
+        createdAt: Date.now(),
+      },
+    ];
+
+    setStockEntries(nextStockEntries);
+    setSessionDisplayStockEntries((prev) => [sellEntry, ...prev]);
+    setManualMappings(nextManualMappings);
+    persistData(STOCK_KEY, nextStockEntries);
+    persistData(MANUAL_MAPPINGS_KEY, nextManualMappings);
+    return true;
+  };
+
   const deleteStockEntry = (id) => {
     const next = stockEntries.filter((item) => item.id !== id);
     setStockEntries(next);
@@ -709,7 +752,8 @@ export default function App() {
 
         <Route path="/split-view/:findsymbol" element={
           <SplitViewPage symbolSuggestions={symbolSuggestions} stockEntries={stockEntries}
-            manualMappings={manualMappings} currency={currency} formatDate={formatDate} />
+            manualMappings={manualMappings} onSellBuy={addSellEntryForBuy}
+            currency={currency} formatDate={formatDate} />
         }
         />
         <Route path="/symbol-map/:findsymbol" element={

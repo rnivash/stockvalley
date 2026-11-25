@@ -1316,6 +1316,62 @@ textarea {
   margin: 4px 2px;
 }
 
+.sell-modal-backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.sell-modal{
+  width: min(100%, 28rem);
+  padding: 1.25rem;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgba(15, 23, 42, 0.3);
+}
+
+.sell-modal h2{
+  margin-bottom: 0.5rem;
+}
+
+.sell-modal-form{
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.sell-modal-form label{
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.sell-modal-form input{
+  width: 100%;
+}
+
+.sell-modal-actions{
+  display: flex;
+  gap: 0.65rem;
+}
+
+.sell-modal-actions button{
+  width: auto;
+  flex: 1;
+}
+
+.sell-modal-actions .sell-modal-cancel{
+  background: #475569;
+}
+
+.sell-modal-error{
+  color: #b91c1c;
+}
+
 .split-view .target-box, .split-view .target-box-2, .split-view .target-box-3{
   color: #ffffff;
   padding: 5px;

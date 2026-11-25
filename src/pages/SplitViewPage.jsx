@@ -8,6 +8,7 @@ export function SplitViewPage({
   symbolSuggestions,
   stockEntries,
   manualMappings,
+  onSellBuy,
   currency: currencyFormatter,
   formatDate: formatDateFn
 }) {
@@ -21,6 +22,35 @@ export function SplitViewPage({
     initialSymbol === 'ALL'
   );
   const [expandedBuy, setExpandedBuy] = useState(null);
+  const [sellBuy, setSellBuy] = useState(null);
+  const [sellPrice, setSellPrice] = useState('');
+  const [sellDate, setSellDate] = useState('');
+  const [sellError, setSellError] = useState('');
+
+  const openSellForm = (event, buy) => {
+    event.stopPropagation();
+    setSellBuy(buy);
+    setSellPrice('');
+    setSellDate(new Date().toISOString().slice(0, 10));
+    setSellError('');
+  };
+
+  const saveSellEntry = (event) => {
+    event.preventDefault();
+    if (!sellBuy) return;
+
+    const saved = onSellBuy({
+      buyId: sellBuy.id,
+      price: sellPrice,
+      date: sellDate,
+    });
+    if (!saved) {
+      setSellError('Could not save this sale. Please try again.');
+      return;
+    }
+
+    setSellBuy(null);
+  };
 
   const symbolBuys = stockEntries.filter((item) =>
     symbolFilter !== 'ALL'
@@ -95,7 +125,13 @@ export function SplitViewPage({
                         {index + 1}.&nbsp;
                         {formatDateFn(buy.date)} - {currencyFormatter(currentAmount / buy.quantity)} X {buy.quantity}
                       </span>
-                      <button className="btn-nav split-view-sell">Sell</button>
+                      <button
+                        type="button"
+                        className="btn-nav split-view-sell"
+                        onClick={(event) => openSellForm(event, buy)}
+                      >
+                        Sell
+                      </button>
                     </div>
                     {isExpanded && (
                       <div className="target-box">
@@ -109,6 +145,58 @@ export function SplitViewPage({
                 );
               })}
             </ul>
+            {sellBuy && (
+              <div
+                className="sell-modal-backdrop"
+                onClick={(event) => {
+                  if (event.target === event.currentTarget) setSellBuy(null);
+                }}
+              >
+                <section
+                  className="sell-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="sell-modal-title"
+                >
+                  <h2 id="sell-modal-title">Sell {sellBuy.symbol}</h2>
+                  <p>Quantity: {sellBuy.quantity}</p>
+                  <form className="sell-modal-form" onSubmit={saveSellEntry}>
+                    <label>
+                      Sell price
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={sellPrice}
+                        onChange={(event) => setSellPrice(event.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </label>
+                    <label>
+                      Sell date
+                      <input
+                        type="date"
+                        value={sellDate}
+                        onChange={(event) => setSellDate(event.target.value)}
+                        required
+                      />
+                    </label>
+                    {sellError && <p className="sell-modal-error" role="alert">{sellError}</p>}
+                    <div className="sell-modal-actions">
+                      <button type="submit">Save</button>
+                      <button
+                        type="button"
+                        className="sell-modal-cancel"
+                        onClick={() => setSellBuy(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              </div>
+            )}
           </>
         )}
       </div>}
