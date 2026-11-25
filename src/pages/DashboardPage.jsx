@@ -45,7 +45,6 @@ export function DashboardPage({
   let grossprofit = totalprofit;
 
   totalprofit = totalprofit - dpchargetotal;
-  totalprofit = totalprofit + dividendtotal;
 
   const symbolBuys = stockEntries.filter((item) => toAction(item.action) === 'buy');
   
