@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SymbolSelector } from '../components/SymbolSelector';
 import { getActiveSymbol } from '../sessionservice';
 import { toAction } from '../utils';
@@ -13,6 +13,7 @@ export function SplitViewPage({
   formatDate: formatDateFn
 }) {
   const { findsymbol } = useParams();
+  const navigate = useNavigate();
   const initialSymbol =
     findsymbol && findsymbol !== 'ALL'
       ? findsymbol
@@ -81,6 +82,17 @@ export function SplitViewPage({
 
   return (
     <>
+      <div className="split-view-page-actions">
+        <button type="button" onClick={() => navigate('/dividends')}>
+          Dividends
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate(`/symbol-map/${encodeURIComponent(symbolFilter)}`)}
+        >
+          Map
+        </button>
+      </div>
       <SymbolSelector
         symbolSuggestions={symbolSuggestions}
         selectedSymbol={symbolFilter}

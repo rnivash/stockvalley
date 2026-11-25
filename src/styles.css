@@ -1290,6 +1290,16 @@ textarea {
   padding-left: 0px;
 }
 
+.split-view-page-actions{
+  display: flex;
+  gap: 0.65rem;
+}
+
+.split-view-page-actions button{
+  width: auto;
+  min-width: 6rem;
+}
+
 .split-view ul li{
   padding: 5px;
   background-color: #E3F2FD;
