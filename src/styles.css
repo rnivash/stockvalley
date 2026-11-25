@@ -1299,9 +1299,21 @@ textarea {
   border-radius: 5px;
 }
 
+.split-view-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.split-view-row span{
+  flex: 1;
+  min-width: 0;
+}
+
 .split-view .split-view-sell{
-  display: block;
-  margin-left: auto;
+  flex: 0 0 80px;
+  margin: 4px 2px;
 }
 
 .split-view .target-box, .split-view .target-box-2, .split-view .target-box-3{

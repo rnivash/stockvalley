@@ -145,7 +145,11 @@ export function DashboardPage({
 
         <article className='card good'>
           <small>Today</small>
-          <TodayBooked manualMappings={manualMappings} stockEntries={stockEntries} pnlByDate={pnlByDate}></TodayBooked>
+          <TodayBooked manualMappings={manualMappings} 
+          stockEntries={stockEntries} 
+          pnlByDate={pnlByDate}
+          currency={currencyFormatter}
+          ></TodayBooked>
         </article>
       </section>
 
@@ -245,7 +249,7 @@ export function ActiveTrade({
   </>);
 
 }
-export function TodayBooked({ pnlByDate }) {
+export function TodayBooked({ pnlByDate, currency: currencyFormatter, }) {
   const today = getDateKey(new Date());
   const todaysold = pnlByDate[today];
 
@@ -254,7 +258,7 @@ export function TodayBooked({ pnlByDate }) {
   return (<>
     <div className="metric-badges">
       {todaysold !== undefined? (<span className={`metric-badge ${todaysold >= 0 ? 'balance-good' : 'balance-bad'}`}>
-        {todaysold}
+        {currencyFormatter(todaysold)}
       </span>):(<></>)}
     </div>
     <button className="btn-nav" onClick={() => history("/simple-stocks")} >
